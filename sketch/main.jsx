@@ -33,7 +33,11 @@ export function mount(el, { json, theme, onChange }) {
         initialData={parse(json)}
         theme={t}
         UIOptions={UI}
-        excalidrawAPI={a => (api = a)}
+        excalidrawAPI={a => {
+          // Keep the picked tool after drawing (Excalidraw's tool lock), so you can draw many circles in a row.
+          if (!api) setTimeout(() => a.setActiveTool({ type: 'selection', locked: true }));
+          api = a;
+        }}
         onChange={changed}
       />,
     );
