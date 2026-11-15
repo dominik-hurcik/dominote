@@ -5,13 +5,13 @@
 <h1 align="center">Dominote</h1>
 
 <p align="center">
-  A fast, open source note-taking app for macOS, built with Rust and Tauri.<br>
+  A fast, open source note-taking app for macOS and Windows, built with Rust and Tauri.<br>
   Your notes are plain Markdown files in a folder you own.
 </p>
 
 <p align="center">
-  <a href="https://github.com/dominik-hurcik/dominote-mac/releases/latest"><img src="https://img.shields.io/github/v/release/dominik-hurcik/dominote-mac?label=download&cacheSeconds=3600" alt="Latest release"></a>
-  <img src="https://img.shields.io/badge/platform-macOS%2011%2B-lightgrey" alt="macOS 11+">
+  <a href="https://github.com/dominik-hurcik/dominote/releases/latest"><img src="https://img.shields.io/github/v/release/dominik-hurcik/dominote?label=download&cacheSeconds=3600" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%2011%2B%20%7C%20Windows%2010%2B-lightgrey" alt="macOS 11+ and Windows 10+">
   <img src="https://img.shields.io/badge/built%20with-Rust%20%2B%20Tauri-orange" alt="Built with Rust and Tauri">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
 </p>
@@ -32,7 +32,7 @@
 
 Most note apps ship a full browser engine, sync servers and a database. Dominote doesn't.
 
-- **7 MB app.** Tauri uses the WebKit engine already in macOS, so there is no bundled Chromium.
+- **7 MB app.** Tauri uses the web engine already in the system, WebKit on macOS and WebView2 on Windows, so there is no bundled Chromium.
 - **Rust for the app, plain JavaScript for the editor.** Rust runs the native window and all file access: saving, renaming, moving, Trash and search. The note editor is plain JavaScript and CSS with no framework. Sketches use Excalidraw, which loads only when you open one.
 - **No database, no account, no network.** Every page is a `.md` file in `~/Documents/Dominote`. Folders in the sidebar are real folders on disk.
 - **Your files stay readable.** Open them in any editor, put them in Git, or sync them with iCloud Drive or Dropbox.
@@ -43,18 +43,18 @@ Most note apps ship a full browser engine, sync servers and a database. Dominote
 - Markdown shortcuts as you type: `# `, `- `, `1. `, `[] `, `> `, three backticks, `---`.
 - Syntax highlighting for 37 languages, with automatic language detection.
 - Paste formatted text from Claude, web pages and other apps. Tables, headings, lists and code keep their structure.
-- Folders and pages in a sidebar. Drag to move, right-click to rename, deleted items go to the macOS Trash.
+- Folders and pages in a sidebar. Drag to move, right-click to rename, deleted items go to the Trash or Recycle Bin.
 - Search across titles and page text with ⌘K.
 - Sketches: a whiteboard for brainstorming and presenting, powered by [Excalidraw](https://github.com/excalidraw/excalidraw). Shapes, arrows, freehand drawing, text and images, saved as `.excalidraw` files you can also open on excalidraw.com.
 - Present mode with ⇧⌘F: full screen without the sidebar, for a page or a sketch.
 - Export a page as PDF with ⇧⌘E, or right-click it and choose **Export as PDF**. The PDF is always in light colors.
 - Drag across blocks to select several, then copy them as Markdown, cut or delete.
-- A top-right View menu with full width and 100%, 90%, 80%, or 70% page zoom, remembered per note on this Mac.
+- A top-right View menu with full width and 100%, 90%, 80%, or 70% page zoom, remembered per note on this computer.
 - Light and dark themes, and a choice of fonts for the menus, the page and code.
 - Autosave on every change, written atomically so a crash can't corrupt a note.
 - Undo and redo for every change on a page, including deleted blocks, table edits and changes made by an AI agent.
 - Page history. Right-click a page and choose **Page history** to restore an older version. A copy is kept every 10 minutes while you edit, in `.dominote/history` inside your notes folder.
-- Linked folders. Right-click the sidebar and choose **Link folder from disk** to show a folder from anywhere on your Mac. Its pages open, save and search like your own. Dominote adds a symlink in your notes folder and never moves the files. **Unlink folder** removes only the link.
+- Linked folders. Right-click the sidebar and choose **Link folder from disk** to show a folder from anywhere on your computer. Its pages open, save and search like your own. Dominote adds a symlink (a junction on Windows) in your notes folder and never moves the files. **Unlink folder** removes only the link.
 
 <table>
   <tr>
@@ -69,21 +69,23 @@ Most note apps ship a full browser engine, sync servers and a database. Dominote
 
 ## Install
 
-Dominote needs macOS 11 or later and runs on Apple Silicon and Intel Macs.
+Dominote runs on macOS 11 or later (Apple Silicon and Intel) and on Windows 10 or 11 (x64).
 
-### Option 1: Install script (recommended)
+### macOS
+
+#### Option 1: Install script (recommended)
 
 Paste this into Terminal:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/dominik-hurcik/dominote-mac/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dominik-hurcik/dominote/main/install.sh | bash
 ```
 
 The script downloads the latest release, copies `Dominote.app` into `/Applications` and opens it. Run the same command again to update. The script is [short enough to read](install.sh) before you run it.
 
-### Option 2: Download the .dmg
+#### Option 2: Download the .dmg
 
-1. Download `Dominote.dmg` from the [latest release](https://github.com/dominik-hurcik/dominote-mac/releases/latest).
+1. Download `Dominote.dmg` from the [latest release](https://github.com/dominik-hurcik/dominote/releases/latest).
 2. Open it and drag Dominote into Applications.
 3. Open Dominote. macOS will say it can't verify the developer.
 4. Open **System Settings > Privacy & Security**, scroll down, and click **Open Anyway** next to the Dominote message.
@@ -96,11 +98,33 @@ xattr -dr com.apple.quarantine /Applications/Dominote.app
 
 macOS shows the warning because the app isn't signed with a paid Apple Developer ID. The install script avoids it because files downloaded with `curl` don't get the quarantine flag.
 
-### Option 3: Build from source
+### Windows
+
+#### Option 1: Install script (recommended)
+
+Paste this into PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/dominik-hurcik/dominote/main/install.ps1 | iex
+```
+
+The script downloads the latest release, installs Dominote for your user only, adds it to the Start menu and opens it. It needs no admin rights. Run the same command again to update. Read [install.ps1](install.ps1) before you run it.
+
+#### Option 2: Download the installer
+
+1. Download `Dominote-setup.exe` from the [latest release](https://github.com/dominik-hurcik/dominote/releases/latest).
+2. Run it. Windows may say "Windows protected your PC".
+3. Click **More info**, then **Run anyway**.
+
+Windows shows the warning because the app isn't code-signed. The install script avoids it because files downloaded with PowerShell aren't marked as coming from the internet. Some company laptops block unsigned apps entirely. In that case, ask your IT team.
+
+### Build from source
 
 See [Build from source](#build-from-source).
 
 ## Keyboard shortcuts
+
+On Windows, use Ctrl for ⌘, Shift for ⇧ and Alt for ⌥. For example, ⇧⌘N is Ctrl+Shift+N.
 
 | Action | Shortcut |
 | --- | --- |
@@ -160,14 +184,14 @@ Pages are GitHub-flavored Markdown. The page title is the file name.
 You need [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) (only for the Tauri build tool).
 
 ```sh
-git clone https://github.com/dominik-hurcik/dominote-mac.git
-cd dominote-mac
+git clone https://github.com/dominik-hurcik/dominote.git
+cd dominote
 cargo run                                  # run in development
-npx @tauri-apps/cli@2 build                # build Dominote.app and a .dmg
-cp -R target/release/bundle/macos/Dominote.app /Applications/
+npx @tauri-apps/cli@2 build                # macOS: Dominote.app and a .dmg. Windows: an installer.
+cp -R target/release/bundle/macos/Dominote.app /Applications/   # macOS only
 ```
 
-An app you build yourself opens without any Gatekeeper warning.
+An app you build yourself opens without any Gatekeeper or SmartScreen warning. On Windows the installer is in `target/release/bundle/nsis`.
 
 ### Project layout
 

@@ -21,6 +21,20 @@ const ITEMS = [
 ];
 const SHORTCUTS = [[/^#\s/, 'h1'], [/^##\s/, 'h2'], [/^###\s/, 'h3'], [/^[-*+]\s/, 'ul'], [/^1[.)]\s/, 'ol'], [/^\[\s?\]\s/, 'todo'], [/^>\s/, 'quote']];
 
+// Shortcut labels are written Mac style (⌘N). On Windows they read Ctrl+N, and the handlers accept Ctrl.
+const IS_WIN = navigator.userAgent.includes('Windows');
+const MOD_NAMES = { '⌘': 'Ctrl', '⌥': 'Alt', '⇧': 'Shift' };
+const keys = s => IS_WIN
+  ? s.replace(/([⌘⌥⇧]+)(\S)/g, (_, m, k) => Object.keys(MOD_NAMES).filter(c => m.includes(c)).map(c => MOD_NAMES[c]).join('+') + '+' + k)
+  : s;
+if (IS_WIN) {
+  document.body.classList.add('win');
+  document.querySelectorAll('kbd, [title]').forEach(el => {
+    if (el.title) el.title = keys(el.title);
+    if (el.tagName === 'KBD') el.textContent = keys(el.textContent);
+  });
+}
+
 let current = null;      // open note path, relative to the notes root
 let lastSaved = null;    // Markdown last read from / written to disk for `current`
 let saveTimer = null, renameTimer = null;
@@ -1318,7 +1332,8 @@ document.addEventListener('mousedown', e => {
   if (!ctx.contains(e.target)) ctx.hidden = true;
   if (!slashEl.contains(e.target) && slash) closeSlash();
 });
-const copyPath = p => navigator.clipboard.writeText(rootDir + (p ? '/' + p : '')).then(() => toast('Path copied'));
+const SEP = IS_WIN ? '\\' : '/';
+const copyPath = p => navigator.clipboard.writeText(rootDir + (p ? SEP + p.replaceAll('/', SEP) : '')).then(() => toast('Path copied'));
 $('#sidebar').addEventListener('contextmenu', e => {
   e.preventDefault();
   const row = e.target.closest('.item');
@@ -1427,7 +1442,7 @@ async function restoreVersion(path, v) {
     if (path !== sketchPath || !sketch) await openSketch(path);
     if (path !== sketchPath || !sketch) return;
     sketch.load(md);
-    return toast('Restored. Press ⌘Z to undo.');
+    return toast(keys('Restored. Press ⌘Z to undo.'));
   }
   if (path !== current) await openNote(path);
   if (path !== current) return;
@@ -1435,7 +1450,7 @@ async function restoreVersion(path, v) {
   snapshot();
   scheduleSave();
   focusBlock(editor.firstElementChild, 0);
-  toast('Restored. Press ⌘Z to undo.');
+  toast(keys('Restored. Press ⌘Z to undo.'));
 }
 
 pInput.addEventListener('input', () => {
@@ -1577,7 +1592,7 @@ window.addEventListener('blur', () => flush());
   }
 })();
 
-const WELCOME = `Type **/** on an empty line to insert any block: headings, lists, to-dos, tables, code, quotes, callouts and dividers.
+const WELCOME = keys(`Type **/** on an empty line to insert any block: headings, lists, to-dos, tables, code, quotes, callouts and dividers.
 
 ## Shortcuts
 
@@ -1597,4 +1612,4 @@ Every page is a Markdown file in your notes folder (path in the bottom-left corn
 | --- | --- |
 | Folders | Done |
 | Search | Done |
-`;
+`);

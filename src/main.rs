@@ -8,7 +8,9 @@ use std::path::{Component, Path, PathBuf};
 
 fn root() -> PathBuf {
     let dir = std::env::var("DOMINOTE_DIR").map(PathBuf::from).unwrap_or_else(|_| {
-        PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into())).join("Documents/Dominote")
+        // HOME on macOS, USERPROFILE on Windows.
+        let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).unwrap_or_else(|_| ".".into());
+        PathBuf::from(home).join("Documents").join("Dominote")
     });
     let _ = fs::create_dir_all(&dir);
     dir
@@ -28,7 +30,8 @@ fn rel(p: &Path) -> String {
 }
 
 fn clean_name(name: &str) -> Result<String, String> {
-    let n = name.trim().replace(['/', '\\', ':'], "-");
+    // Also drop characters Windows can't use in file names, so notes sync between Mac and Windows.
+    let n = name.trim().replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "-");
     if n.is_empty() || n.starts_with('.') {
         return Err("invalid name".into());
     }
@@ -263,13 +266,14 @@ fn delete(path: String) -> Result<(), String> {
     let p = resolve(&path)?;
     // A linked folder is only unlinked. The real folder and its files stay where they are.
     if fs::symlink_metadata(&p).is_ok_and(|m| m.file_type().is_symlink()) {
-        return fs::remove_file(&p).map_err(|e| e.to_string());
+        return unlink(&p).map_err(|e| e.to_string());
     }
     trash::delete(p).map_err(|e| e.to_string())
 }
 
 // ---------- linked folders ----------
 // A folder elsewhere on disk shows up in the sidebar through a symlink inside the notes root.
+// On Windows it is a directory junction, which works without admin rights.
 // Its pages open, save and search like any other, and agents reading the root see it too.
 
 fn link_into(dir: &str, target: &Path) -> Result<String, String> {
@@ -283,23 +287,37 @@ fn link_into(dir: &str, target: &Path) -> Result<String, String> {
     }
     let name = target.file_name().map_or("Linked".into(), |n| n.to_string_lossy().to_string());
     let at = unique(&resolve(dir)?, &name, "");
-    std::os::unix::fs::symlink(&target, &at).map_err(|e| e.to_string())?;
+    make_link(&target, &at).map_err(|e| e.to_string())?;
     Ok(rel(&at))
 }
 
-/// Ask for a folder with the macOS picker, then link it into `dir`. None when the picker is cancelled.
+#[cfg(unix)]
+fn make_link(target: &Path, at: &Path) -> std::io::Result<()> {
+    std::os::unix::fs::symlink(target, at)
+}
+#[cfg(windows)]
+fn make_link(target: &Path, at: &Path) -> std::io::Result<()> {
+    junction::create(target, at)
+}
+
+/// Removes only the link, never the folder it points to.
+#[cfg(unix)]
+fn unlink(p: &Path) -> std::io::Result<()> {
+    fs::remove_file(p)
+}
+#[cfg(windows)]
+fn unlink(p: &Path) -> std::io::Result<()> {
+    fs::remove_dir(p)
+}
+
+/// Ask for a folder with the system picker, then link it into `dir`. None when the picker is cancelled.
 #[tauri::command]
-async fn link_folder(dir: String) -> Result<Option<String>, String> {
-    let out = std::process::Command::new("osascript")
-        // `activate` brings the picker in front of the Dominote window.
-        .args(["-e", "activate", "-e", r#"POSIX path of (choose folder with prompt "Link a folder into Dominote")"#])
-        .output()
-        .map_err(|e| e.to_string())?;
-    if !out.status.success() {
-        return Ok(None);
-    }
-    let picked = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    link_into(&dir, Path::new(&picked)).map(Some)
+async fn link_folder(window: tauri::WebviewWindow, dir: String) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = window.dialog().file().set_title("Link a folder into Dominote").set_parent(&window).blocking_pick_folder();
+    let Some(picked) = picked else { return Ok(None) };
+    let path = picked.into_path().map_err(|e| e.to_string())?;
+    link_into(&dir, &path).map(Some)
 }
 
 #[derive(Serialize)]
@@ -353,8 +371,9 @@ fn search(query: String) -> Vec<Hit> {
     title_hits
 }
 
-/// Export as PDF: open the macOS print dialog, which has a PDF button.
-/// Tauri's own print uses zero page margins, so long pages ran to the top edge of page 2 and on.
+/// Export as PDF: open the print dialog, which has a PDF option.
+/// On macOS, Tauri's own print uses zero page margins, so long pages ran to the top edge of page 2 and on.
+#[cfg(target_os = "macos")]
 #[tauri::command]
 fn print_page(window: tauri::WebviewWindow, title: String) -> Result<(), String> {
     window
@@ -377,8 +396,17 @@ fn print_page(window: tauri::WebviewWindow, title: String) -> Result<(), String>
         .map_err(|e| e.to_string())
 }
 
+/// Windows: the WebView2 print dialog has "Microsoft Print to PDF" and sets its own margins.
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+fn print_page(window: tauri::WebviewWindow, title: String) -> Result<(), String> {
+    let _ = title;
+    window.print().map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             root_dir, tree, read_note, write_note, create_note, create_folder, rename, move_item, delete, search,
             history, read_version, link_folder, print_page
@@ -424,7 +452,7 @@ mod tests {
         let (dir, ext) = (base.join("notes"), base.join("Context"));
         fs::create_dir_all(ext.join("deep")).unwrap();
         fs::write(ext.join("deep/spec.md"), "hello").unwrap();
-        std::os::unix::fs::symlink(&ext, ext.join("deep/loop")).unwrap();
+        make_link(&ext, &ext.join("deep/loop")).unwrap();
         std::env::set_var("DOMINOTE_DIR", &dir);
         let _ = root();
         assert!(link_into("", &dir).is_err(), "root can't link itself");

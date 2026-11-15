@@ -1,12 +1,12 @@
 #!/bin/bash
 # Installs the latest Dominote release into /Applications.
-# Usage: curl -fsSL https://raw.githubusercontent.com/dominik-hurcik/dominote-mac/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/dominik-hurcik/dominote/main/install.sh | bash
 #
 # Files downloaded with curl do not get the macOS quarantine flag,
 # so Gatekeeper does not block this unsigned build.
 set -euo pipefail
 
-REPO="dominik-hurcik/dominote-mac"
+REPO="dominik-hurcik/dominote"
 URL="https://github.com/$REPO/releases/latest/download/Dominote.app.zip"
 APP="/Applications/Dominote.app"
 

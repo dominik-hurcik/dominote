@@ -297,3 +297,8 @@ td:focus, th:focus { box-shadow: inset 0 0 0 2px rgba(35, 131, 226, 0.5); }
   pre, table, blockquote, img, .code-wrap { break-inside: avoid; }
   h1, h2, h3 { break-after: avoid; }
 }
+
+/* Windows has a normal title bar, so no room for traffic lights and no drag strips. */
+body.win #sidebar { padding-top: 12px; }
+body.win .drag, body.win .top-drag { display: none; }
+@media screen { body.win #page { padding-top: 40px; } }
