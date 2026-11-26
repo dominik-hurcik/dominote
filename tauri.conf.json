@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Dominote",
-  "version": "0.6.1",
-  "identifier": "com.dominote.app",
+  "productName": "Hebdo",
+  "version": "0.7.0",
+  "identifier": "app.hebdo",
   "build": {
     "frontendDist": "ui"
   },
@@ -11,7 +11,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Dominote",
+        "title": "Hebdo",
         "width": 1200,
         "height": 800,
         "minWidth": 600,

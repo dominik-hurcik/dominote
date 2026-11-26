@@ -665,23 +665,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dominote"
-version = "0.6.1"
-dependencies = [
- "junction",
- "objc2",
- "objc2-app-kit",
- "objc2-foundation",
- "objc2-web-kit",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "trash",
-]
-
-[[package]]
 name = "dpi"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1206,6 +1189,23 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+
+[[package]]
+name = "hebdo"
+version = "0.7.0"
+dependencies = [
+ "junction",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "objc2-web-kit",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "trash",
+]
 
 [[package]]
 name = "heck"
