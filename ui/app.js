@@ -4,6 +4,8 @@ const $ = s => document.querySelector(s);
 const editor = $('#editor'), titleEl = $('#title'), treeEl = $('#tree');
 
 const TEXT = new Set(['p', 'h1', 'h2', 'h3', 'ul', 'ol', 'todo', 'quote', 'callout']);
+const CALLOUT_KINDS = ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'];
+const CALLOUT_ICONS = { NOTE: '💡', TIP: '✨', IMPORTANT: '❗', WARNING: '⚠️', CAUTION: '🔥' };
 const LIST = MD.LIST;
 const ITEMS = [
   { type: 'p', label: 'Text', hint: '', keys: 'text paragraph plain' },
@@ -186,11 +188,16 @@ function makeBlock(b) {
       el.classList.toggle('done', cb.checked);
       el.append(cb);
     }
-    if (b.type === 'callout') el.insertAdjacentHTML('beforeend', '<span class="callout-icon">💡</span>');
+    if (b.type === 'callout') {
+      const kind = (b.kind || 'NOTE').toUpperCase();
+      el.dataset.kind = kind;
+      el.insertAdjacentHTML('beforeend', `<span class="callout-icon" title="${kind} — click to change">${CALLOUT_ICONS[kind] || '💡'}</span>`);
+    }
     const c = document.createElement('div');
     c.className = 'content';
     c.contentEditable = 'true';
     c.innerHTML = MD.inlineToHtml(b.text || '');
+    c.querySelectorAll('a[href]').forEach(a => { a.title = keys('⌘+Click to open ') + a.getAttribute('href'); });
     el.append(c);
   } else if (b.type === 'code') {
     el.innerHTML = '<div class="code-bar"><input class="lang" placeholder="language" spellcheck="false" list="lang-list"><button class="copy" tabindex="-1">Copy</button></div>' +
@@ -214,6 +221,7 @@ function makeBlock(b) {
         cell.className = 'cell';
         cell.contentEditable = 'true';
         cell.innerHTML = MD.inlineToHtml(c);
+        cell.querySelectorAll('a[href]').forEach(a => { a.title = keys('⌘+Click to open ') + a.getAttribute('href'); });
         tr.append(cell);
       });
     });
@@ -252,7 +260,11 @@ function highlight(block) {
 
 function readBlock(el) {
   const type = el.dataset.type, indent = +el.dataset.indent || 0;
-  if (TEXT.has(type)) return { type, indent, text: htmlToMd(content(el)).trim(), checked: el.querySelector('.check')?.checked };
+  if (TEXT.has(type)) {
+    const out = { type, indent, text: htmlToMd(content(el)).trim(), checked: el.querySelector('.check')?.checked };
+    if (type === 'callout') out.kind = el.dataset.kind || 'NOTE';
+    return out;
+  }
   if (type === 'code') return { type, lang: el.querySelector('.lang').value.trim(), text: content(el).innerText.replace(/\n$/, '') };
   if (type === 'table') return { type, rows: [...el.querySelectorAll('tr')].map(tr => [...tr.cells].map(c => htmlToMd(c).trim())) };
   return { type };
@@ -645,6 +657,18 @@ editor.addEventListener('change', e => {
 });
 
 editor.addEventListener('mousedown', e => {
+  const icon = e.target.closest('.callout-icon');
+  if (icon) {
+    e.preventDefault();
+    const block = icon.closest('.block');
+    const cur = CALLOUT_KINDS.indexOf((block.dataset.kind || 'NOTE').toUpperCase());
+    const next = CALLOUT_KINDS[(cur + 1) % CALLOUT_KINDS.length];
+    block.dataset.kind = next;
+    icon.textContent = CALLOUT_ICONS[next];
+    icon.title = `${next} — click to change`;
+    changed();
+    return;
+  }
   const btn = e.target.closest('.table-ctl button, .copy');
   if (!btn) return;
   e.preventDefault();
@@ -655,6 +679,15 @@ editor.addEventListener('mousedown', e => {
   }
   const cell = block.contains(document.activeElement) && document.activeElement.closest('.cell');
   tableOp(block, btn.dataset.op, cell || null);
+});
+
+editor.addEventListener('click', e => {
+  const a = e.target.closest('a[href]');
+  if (!a) return;
+  e.preventDefault();
+  if (e.metaKey || e.ctrlKey) {
+    invoke('open_url', { url: a.getAttribute('href') }).catch(err => toast(err));
+  }
 });
 
 // ---------- block selection ----------
@@ -942,6 +975,7 @@ function showCrumbs() {
   $('#crumbs').textContent = d ? d.split('/').join(' / ') : '';
 }
 function showEmpty() {
+  closeFind();
   closeSketch(false);
   current = null;
   lastSaved = null;
@@ -956,6 +990,7 @@ async function openNote(path, { focusTitle = false } = {}) {
   await flush();
   await closeSketch();
   closeSlash();
+  closeFind();
   let md;
   try { md = await invoke('read_note', { path }); } catch (err) { toast(err); return; }
   current = path;
@@ -1052,6 +1087,7 @@ async function openSketch(path) {
   try { json = await invoke('read_note', { path }); } catch (err) { toast(err); return; }
   await closeSketch();
   closeSlash();
+  closeFind();
   current = null;
   lastSaved = null;
   $('#page').hidden = true;
@@ -1427,7 +1463,8 @@ async function openHistory(path = current || sketchPath) {
   try { list = await invoke('history', { path }); } catch (err) { return toast(err); }
   if (!list.length) return toast('No older versions yet. One is saved every 10 minutes while you edit.');
   historyPath = path;
-  hits = list.map(v => ({ id: v.id, title: ago(+v.id), snippet: `${v.words} words` }));
+  const unit = isSketch(path) ? 'elements' : 'words';
+  hits = list.map(v => ({ id: v.id, title: ago(+v.id), snippet: `${v.words} ${unit}` }));
   hitIndex = 0;
   pInput.value = '';
   pInput.placeholder = `Restore an older version of “${base(path)}”`;
@@ -1515,15 +1552,115 @@ for (const [k, sel] of Object.entries(fontInputs)) {
 }
 $('#set-page-size').addEventListener('change', e => setSetting('pageSize', e.target.value));
 $('#theme-seg').addEventListener('click', e => { if (e.target.dataset.theme) setSetting('theme', e.target.dataset.theme); });
+function showRootPath() {
+  const short = rootDir.replace(/^\/Users\/[^/]+/, '~');
+  $('#root-path').textContent = short;
+  const sr = $('#set-root-path');
+  if (sr) { sr.textContent = short; sr.title = rootDir; }
+}
 function openSettings() {
   for (const [k, sel] of Object.entries(fontInputs)) $(sel).value = settings[k];
   $('#set-page-size').value = settings.pageSize;
+  showRootPath();
   $('#settings').hidden = false;
 }
+$('#set-root-btn').onclick = async () => {
+  try {
+    const np = await invoke('choose_root_dir');
+    if (!np || np === rootDir) return;
+    await flush();
+    showEmpty();
+    histories.clear();
+    rootDir = np;
+    selectedDir = '';
+    openDirs.clear();
+    store.set('openDirs', []);
+    showRootPath();
+    await refreshTree(true);
+    toast('Notes folder updated');
+  } catch (err) { toast(err); }
+};
 const settingsEl = $('#settings');
 settingsEl.addEventListener('mousedown', e => { if (e.target === settingsEl) settingsEl.hidden = true; });
 settingsEl.addEventListener('keydown', e => { if (e.key === 'Escape') settingsEl.hidden = true; });
 applySettings();
+
+// ---------- find in page (⌘F) ----------
+const findBar = $('#find-bar'), findInput = $('#find-input'), findCount = $('#find-count');
+let findRanges = [], findIdx = 0;
+function clearFindHighlights() {
+  if (window.CSS?.highlights) {
+    CSS.highlights.delete('find-all');
+    CSS.highlights.delete('find-current');
+  }
+}
+function openFind() {
+  if (!current) return;
+  findBar.hidden = false;
+  findInput.focus();
+  findInput.select();
+  runFind();
+}
+function closeFind() {
+  if (findBar.hidden) return;
+  findBar.hidden = true;
+  findRanges = [];
+  findIdx = 0;
+  findCount.textContent = '';
+  clearFindHighlights();
+}
+function runFind() {
+  clearFindHighlights();
+  findRanges = [];
+  findIdx = 0;
+  const q = findInput.value.toLowerCase();
+  if (!q || !current) { findCount.textContent = ''; return; }
+  for (const root of [titleEl, editor]) {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, n =>
+      n.parentElement?.closest('.hl') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT);
+    let node;
+    while ((node = w.nextNode())) {
+      const hay = node.nodeValue.toLowerCase();
+      let pos = 0;
+      while ((pos = hay.indexOf(q, pos)) !== -1) {
+        const r = document.createRange();
+        r.setStart(node, pos);
+        r.setEnd(node, pos + q.length);
+        findRanges.push(r);
+        pos += q.length;
+      }
+    }
+  }
+  showFindMatch(0);
+}
+function showFindMatch(i) {
+  if (!findRanges.length) {
+    findCount.textContent = findInput.value ? '0 / 0' : '';
+    clearFindHighlights();
+    return;
+  }
+  findIdx = ((i % findRanges.length) + findRanges.length) % findRanges.length;
+  findCount.textContent = `${findIdx + 1} / ${findRanges.length}`;
+  const r = findRanges[findIdx];
+  if (window.CSS?.highlights && window.Highlight) {
+    CSS.highlights.set('find-all', new Highlight(...findRanges));
+    CSS.highlights.set('find-current', new Highlight(r));
+  } else {
+    const sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
+  const el = r.startContainer.parentElement;
+  el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+findInput.addEventListener('input', runFind);
+findInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); showFindMatch(findIdx + (e.shiftKey ? -1 : 1)); }
+  else if (e.key === 'Escape') { e.preventDefault(); closeFind(); }
+});
+$('#find-prev').onclick = () => showFindMatch(findIdx - 1);
+$('#find-next').onclick = () => showFindMatch(findIdx + 1);
+$('#find-close').onclick = closeFind;
 
 // ---------- global ----------
 $('#settings-btn').onclick = openSettings;
@@ -1551,6 +1688,7 @@ document.addEventListener('keydown', e => {
   else if (k === 'n' && e.shiftKey) { e.preventDefault(); newFolder(); }
   else if (e.code === 'KeyN' && e.altKey) { e.preventDefault(); newSketch(); }
   else if (k === 'f' && e.shiftKey) { e.preventDefault(); togglePresent(); }
+  else if (k === 'f' && current) { e.preventDefault(); openFind(); }
   else if (k === 'n') { e.preventDefault(); newNote(); }
   else if (k === 's') { e.preventDefault(); flush(); }
   else if (k === ',') { e.preventDefault(); settingsEl.hidden ? openSettings() : (settingsEl.hidden = true); }
@@ -1571,18 +1709,31 @@ setInterval(() => {
     if (!current || saveTimer || renameTimer) return;
     let md;
     try { md = await invoke('read_note', { path: current }); } catch { return showEmpty(); }
-    if (md !== lastSaved) { lastSaved = md; render(md); snapshot(); }
+    if (md !== lastSaved) {
+      const hadFocus = editor.contains(document.activeElement);
+      const idx = focusedIndex();
+      const activeField = document.activeElement?.closest?.('.content, .cell');
+      const off = activeField ? caretOffset(activeField) : null;
+      lastSaved = md;
+      render(md);
+      snapshot();
+      if (hadFocus && idx >= 0) {
+        const target = editor.children[Math.min(idx, editor.children.length - 1)];
+        if (target) focusBlock(target, off ?? 'end');
+      }
+      if (!findBar.hidden) runFind();
+    }
   });
 }, 2000);
 window.addEventListener('blur', () => flush());
 
 (async () => {
   rootDir = await invoke('root_dir');
-  $('#root-path').textContent = rootDir.replace(/^\/Users\/[^/]+/, '~');
+  showRootPath();
   await refreshTree(true);
   const last = store.get('last', null);
   if (last) await openNote(last).catch(() => {});
-  else if (!treeEl.querySelector('.item')) {
+  else if (!treeEl.querySelector('.item:not(.section)')) {
     // First run: drop in a welcome page so the editor is not empty.
     const path = await invoke('create_note', { dir: '' });
     const np = await invoke('rename', { path, name: 'Welcome' }).catch(() => path);

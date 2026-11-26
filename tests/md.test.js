@@ -21,6 +21,9 @@ Some **bold** and *italic* and \`code\` and [link](https://x.com).
 > [!NOTE]
 > callout text
 
+> [!WARNING]
+> careful here
+
 ---
 
 \`\`\`rust
@@ -36,11 +39,13 @@ fn main() {
 
 const blocks = MD.parse(doc);
 assert.deepStrictEqual(blocks.map(b => b.type),
-  ['h1', 'p', 'ul', 'ul', 'ul', 'ol', 'ol', 'todo', 'todo', 'quote', 'callout', 'divider', 'code', 'table']);
+  ['h1', 'p', 'ul', 'ul', 'ul', 'ol', 'ol', 'todo', 'todo', 'quote', 'callout', 'callout', 'divider', 'code', 'table']);
 assert.strictEqual(blocks[3].indent, 1);
 assert.strictEqual(blocks[8].checked, true);
-assert.strictEqual(blocks[12].lang, 'rust');
-assert.deepStrictEqual(blocks[13].rows, [['A', 'B | pipe'], ['1', '2']]);
+assert.strictEqual(blocks[10].kind, 'NOTE');
+assert.strictEqual(blocks[11].kind, 'WARNING');
+assert.strictEqual(blocks[13].lang, 'rust');
+assert.deepStrictEqual(blocks[14].rows, [['A', 'B | pipe'], ['1', '2']]);
 assert.strictEqual(MD.serialize(blocks), doc, 'round trip must be lossless');
 
 const html = MD.inlineToHtml('a **b** *c* `<x>` ~~d~~ [e](javascript:void)');

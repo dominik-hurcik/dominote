@@ -5,13 +5,45 @@
 use serde::Serialize;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::process::Command;
+
+fn config_file() -> PathBuf {
+    #[cfg(target_os = "macos")]
+    {
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+        PathBuf::from(home).join("Library/Application Support/com.dominote.app/root.txt")
+    }
+    #[cfg(windows)]
+    {
+        let base = std::env::var("APPDATA")
+            .or_else(|_| std::env::var("USERPROFILE"))
+            .unwrap_or_else(|_| ".".into());
+        PathBuf::from(base).join("com.dominote.app").join("root.txt")
+    }
+    #[cfg(all(not(target_os = "macos"), not(windows)))]
+    {
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+        PathBuf::from(home).join(".config/dominote/root.txt")
+    }
+}
 
 fn root() -> PathBuf {
-    let dir = std::env::var("DOMINOTE_DIR").map(PathBuf::from).unwrap_or_else(|_| {
-        // HOME on macOS, USERPROFILE on Windows.
-        let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).unwrap_or_else(|_| ".".into());
-        PathBuf::from(home).join("Documents").join("Dominote")
-    });
+    let dir = std::env::var("DOMINOTE_DIR")
+        .ok()
+        .filter(|s| !s.trim().is_empty())
+        .map(PathBuf::from)
+        .or_else(|| {
+            fs::read_to_string(config_file())
+                .ok()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .map(PathBuf::from)
+        })
+        .unwrap_or_else(|| {
+            // HOME on macOS, USERPROFILE on Windows.
+            let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).unwrap_or_else(|_| ".".into());
+            PathBuf::from(home).join("Documents").join("Dominote")
+        });
     let _ = fs::create_dir_all(&dir);
     dir
 }
@@ -93,6 +125,46 @@ fn root_dir() -> String {
     root().to_string_lossy().to_string()
 }
 
+#[tauri::command]
+async fn choose_root_dir(window: tauri::WebviewWindow) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = window
+        .dialog()
+        .file()
+        .set_title("Choose your Dominote notes folder")
+        .set_parent(&window)
+        .blocking_pick_folder();
+    let Some(picked) = picked else { return Ok(None) };
+    let path = picked.into_path().map_err(|e| e.to_string())?;
+    if !path.is_dir() {
+        return Err("invalid folder".into());
+    }
+    let cleaned = path.to_string_lossy().to_string();
+    let cfg = config_file();
+    if let Some(parent) = cfg.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    fs::write(&cfg, &cleaned).map_err(|e| e.to_string())?;
+    Ok(Some(cleaned))
+}
+
+#[tauri::command]
+fn open_url(url: String) -> Result<(), String> {
+    let trimmed = url.trim();
+    let lower = trimmed.to_lowercase();
+    if !(lower.starts_with("http://") || lower.starts_with("https://") || lower.starts_with("mailto:")) {
+        return Err("unsupported link scheme".into());
+    }
+    #[cfg(target_os = "macos")]
+    let status = Command::new("open").arg(trimmed).status();
+    #[cfg(windows)]
+    let status = Command::new("cmd").args(["/C", "start", "", trimmed]).status();
+    #[cfg(all(not(target_os = "macos"), not(windows)))]
+    let status = Command::new("xdg-open").arg(trimmed).status();
+    let status = status.map_err(|e| e.to_string())?;
+    if status.success() { Ok(()) } else { Err("could not open link".into()) }
+}
+
 /// Whiteboards are Excalidraw files. They live in the Sketches folder, shown as its own sidebar section.
 const SKETCH: &str = ".excalidraw";
 const EMPTY_SKETCH: &str = r#"{"type":"excalidraw","version":2,"source":"dominote","elements":[],"appState":{},"files":{}}"#;
@@ -130,6 +202,21 @@ fn history_dir(rel_path: &str) -> PathBuf {
     root().join(".dominote/history").join(rel_path)
 }
 
+fn history_ext(rel_path: &str) -> &'static str {
+    if rel_path.ends_with(SKETCH) { SKETCH } else { ".md" }
+}
+
+fn version_file(dir: &Path, id: u64, ext: &str) -> PathBuf {
+    let p = dir.join(format!("{id}{ext}"));
+    if !p.exists() && ext != ".md" {
+        let legacy = dir.join(format!("{id}.md"));
+        if legacy.exists() {
+            return legacy;
+        }
+    }
+    p
+}
+
 fn now() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs())
 }
@@ -140,9 +227,13 @@ fn version_ids(dir: &Path) -> Vec<u64> {
         .into_iter()
         .flatten()
         .flatten()
-        .filter_map(|e| e.file_name().to_string_lossy().strip_suffix(".md")?.parse().ok())
+        .filter_map(|e| {
+            let name = e.file_name().to_string_lossy().to_string();
+            name.strip_suffix(SKETCH).or_else(|| name.strip_suffix(".md"))?.parse().ok()
+        })
         .collect();
     ids.sort_unstable_by(|a, b| b.cmp(a));
+    ids.dedup();
     ids
 }
 
@@ -152,16 +243,17 @@ fn backup(rel_path: &str, p: &Path, new: &str) {
         return;
     }
     let dir = history_dir(rel_path);
+    let ext = history_ext(rel_path);
     let ids = version_ids(&dir);
     let t = now();
     if ids.first().is_some_and(|&last| t.saturating_sub(last) < BACKUP_EVERY) {
         return;
     }
-    if fs::create_dir_all(&dir).is_err() || fs::write(dir.join(format!("{t}.md")), old).is_err() {
+    if fs::create_dir_all(&dir).is_err() || fs::write(dir.join(format!("{t}{ext}")), old).is_err() {
         return;
     }
     for id in ids.iter().skip(KEEP_VERSIONS - 1) {
-        let _ = fs::remove_file(dir.join(format!("{id}.md")));
+        let _ = fs::remove_file(version_file(&dir, *id, ext));
     }
 }
 
@@ -182,15 +274,27 @@ struct Version {
     words: usize,
 }
 
+fn count_sketch_elements(json: &str) -> usize {
+    serde_json::from_str::<serde_json::Value>(json)
+        .ok()
+        .and_then(|v| v.get("elements")?.as_array().cloned())
+        .map_or(0, |els| els.into_iter().filter(|e| e.get("isDeleted") != Some(&serde_json::Value::Bool(true))).count())
+}
+
 #[tauri::command]
 fn history(path: String) -> Result<Vec<Version>, String> {
     resolve(&path)?;
     let dir = history_dir(&path);
+    let ext = history_ext(&path);
+    let is_sketch = ext == SKETCH;
     Ok(version_ids(&dir)
         .into_iter()
-        .map(|id| Version {
-            id: id.to_string(),
-            words: fs::read_to_string(dir.join(format!("{id}.md"))).map_or(0, |s| s.split_whitespace().count()),
+        .map(|id| {
+            let text = fs::read_to_string(version_file(&dir, id, ext)).unwrap_or_default();
+            Version {
+                id: id.to_string(),
+                words: if is_sketch { count_sketch_elements(&text) } else { text.split_whitespace().count() },
+            }
         })
         .collect())
 }
@@ -199,7 +303,8 @@ fn history(path: String) -> Result<Vec<Version>, String> {
 fn read_version(path: String, id: String) -> Result<String, String> {
     resolve(&path)?;
     let id: u64 = id.parse().map_err(|_| "invalid version")?;
-    fs::read_to_string(history_dir(&path).join(format!("{id}.md"))).map_err(|e| e.to_string())
+    let ext = history_ext(&path);
+    fs::read_to_string(version_file(&history_dir(&path), id, ext)).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -408,8 +513,8 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            root_dir, tree, read_note, write_note, create_note, create_folder, rename, move_item, delete, search,
-            history, read_version, link_folder, print_page
+            root_dir, choose_root_dir, open_url, tree, read_note, write_note, create_note, create_folder, rename,
+            move_item, delete, search, history, read_version, link_folder, print_page
         ])
         .run(tauri::generate_context!())
         .expect("error while running Dominote");
@@ -492,6 +597,26 @@ mod tests {
         rename("a.md".into(), "b".into()).unwrap();
         assert_eq!(history("b.md".into()).unwrap().len(), 1);
         assert!(read_version("b.md".into(), "../../x".into()).is_err());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn sketch_history_uses_excalidraw_and_counts_elements() {
+        let _lock = ROOT.lock().unwrap();
+        let dir = std::env::temp_dir().join(format!("dominote-skhist-{}", std::process::id()));
+        std::env::set_var("DOMINOTE_DIR", &dir);
+        let _ = fs::remove_dir_all(&dir);
+        let p = create_note("Sketches".into(), Some(true)).unwrap();
+        let s1 = r#"{"type":"excalidraw","elements":[{"id":"1","isDeleted":false},{"id":"2","isDeleted":true}]}"#;
+        let s2 = r#"{"type":"excalidraw","elements":[{"id":"1","isDeleted":false},{"id":"3","isDeleted":false}]}"#;
+        write_note(p.clone(), s1.into()).unwrap();
+        let v = history(p.clone()).unwrap();
+        assert_eq!(v.len(), 1);
+        assert_eq!(v[0].words, 0);
+        assert_eq!(count_sketch_elements(s1), 1);
+        assert_eq!(count_sketch_elements(s2), 2);
+        assert!(open_url("javascript:alert(1)".into()).is_err());
+        assert!(open_url("file:///etc/passwd".into()).is_err());
         let _ = fs::remove_dir_all(&dir);
     }
 }
