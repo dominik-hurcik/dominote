@@ -9,7 +9,7 @@ settings:
     DEVELOPMENT_TEAM: LRU8S47CXH
     SWIFT_VERSION: "5.10"
     MARKETING_VERSION: "0.8.1"
-    CURRENT_PROJECT_VERSION: "2"
+    CURRENT_PROJECT_VERSION: "3"
 targets:
   Hebdo:
     type: application
@@ -17,6 +17,11 @@ targets:
     sources:
       - path: Hebdo/Sources
       - path: Hebdo/Assets.xcassets
+      - path: Hebdo/Resources/sketch.html
+        buildPhase: resources
+      - path: ../ui/sketch
+        type: folder
+        buildPhase: resources
     info:
       path: Hebdo/Info.plist
       properties:

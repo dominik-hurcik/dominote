@@ -33,15 +33,25 @@ struct NotesListView: View {
                             .listRowBackground(HebdoTheme.bg)
                         }
                     }
-                } else if store.tree.isEmpty {
+                } else if store.tree.isEmpty && store.sketches.isEmpty {
                     ContentUnavailableView(
                         "No Notes Yet",
                         systemImage: "doc.text",
-                        description: Text("Tap + to create a note, or point Hebdo Mac at iCloud Drive / Hebdo to sync.")
+                        description: Text("Tap + to create a note or sketch, or point Hebdo Mac at iCloud Drive / Hebdo to sync.")
                     )
                     .listRowBackground(HebdoTheme.bg)
                 } else {
                     NodeRowsView(nodes: store.tree, parentDir: "")
+                    if !store.sketches.isEmpty {
+                        Section {
+                            NodeRowsView(nodes: store.sketches, parentDir: "Sketches")
+                        } header: {
+                            Text("SKETCHES")
+                                .font(.system(size: 11, weight: .semibold, design: .serif))
+                                .tracking(0.8)
+                                .foregroundStyle(HebdoTheme.faint)
+                        }
+                    }
                 }
             }
             .listStyle(.plain)
@@ -51,10 +61,18 @@ struct NotesListView: View {
             .searchable(text: $query, prompt: "Search pages…")
             .refreshable { store.refreshTree() }
             .navigationDestination(for: String.self) { path in
-                NoteEditorView(initialPath: path, draftTemplate: nil, allowTitleEdit: true)
+                if NoteStore.isSketch(path) {
+                    SketchEditorView(path: path)
+                } else {
+                    NoteEditorView(initialPath: path, draftTemplate: nil, allowTitleEdit: true)
+                }
             }
             .navigationDestination(item: $activeNotePath) { path in
-                NoteEditorView(initialPath: path, draftTemplate: nil, allowTitleEdit: true)
+                if NoteStore.isSketch(path) {
+                    SketchEditorView(path: path)
+                } else {
+                    NoteEditorView(initialPath: path, draftTemplate: nil, allowTitleEdit: true)
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -69,6 +87,11 @@ struct NotesListView: View {
                             activeNotePath = store.createNote()
                         } label: {
                             Label("New Page", systemImage: "doc.badge.plus")
+                        }
+                        Button {
+                            activeNotePath = store.createSketch()
+                        } label: {
+                            Label("New Sketch", systemImage: "pencil.and.outline")
                         }
                         Button {
                             newFolderName = ""
@@ -124,7 +147,7 @@ private struct NodeRowsView: View {
             } else {
                 NavigationLink(value: node.path) {
                     HStack(spacing: 10) {
-                        Image(systemName: "doc.text")
+                        Image(systemName: NoteStore.isSketch(node.path) ? "pencil.and.outline" : "doc.text")
                             .font(.system(size: 14))
                             .foregroundStyle(HebdoTheme.muted)
                         Text(node.name)

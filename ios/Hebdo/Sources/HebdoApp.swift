@@ -108,6 +108,18 @@ private struct RegularSplitView: View {
                             }
                         }
                         .listRowBackground(HebdoTheme.side)
+
+                        if !store.sketches.isEmpty {
+                            Section("Sketches") {
+                                ForEach(store.sketches) { sk in
+                                    Label(sk.name, systemImage: "pencil.and.outline")
+                                        .font(.system(size: 15, design: .serif))
+                                        .foregroundStyle(HebdoTheme.text)
+                                        .tag(sk.path)
+                                        .listRowBackground(HebdoTheme.side)
+                                }
+                            }
+                        }
                     }
                 }
                 .listStyle(.sidebar)
@@ -148,6 +160,14 @@ private struct RegularSplitView: View {
                                 Label("New Page", systemImage: "doc.badge.plus")
                             }
                             Button {
+                                let p = store.createSketch()
+                                draftTemplate = nil
+                                allowTitleEdit = false
+                                selectedPath = p
+                            } label: {
+                                Label("New Sketch", systemImage: "pencil.and.outline")
+                            }
+                            Button {
                                 newFolderName = ""
                                 showNewFolder = true
                             } label: {
@@ -161,8 +181,13 @@ private struct RegularSplitView: View {
             }
         } detail: {
             if let path = selectedPath {
-                NoteEditorView(initialPath: path, draftTemplate: draftTemplate, allowTitleEdit: allowTitleEdit)
-                    .id("\(path)-\(draftTemplate != nil)")
+                if NoteStore.isSketch(path) {
+                    SketchEditorView(path: path)
+                        .id(path)
+                } else {
+                    NoteEditorView(initialPath: path, draftTemplate: draftTemplate, allowTitleEdit: allowTitleEdit)
+                        .id("\(path)-\(draftTemplate != nil)")
+                }
             } else {
                 Text("Select a note or pick a day")
                     .font(.system(size: 16, design: .serif))

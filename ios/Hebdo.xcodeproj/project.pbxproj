@@ -11,8 +11,11 @@
 		4C78FF1BC7F89C4FF3493FAD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 412F85E25A2F6AE1A82CE5FA /* Assets.xcassets */; };
 		561770EC71854E28836B51A1 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 122E2D214D319C7B95877086 /* TodayView.swift */; };
 		6CACE83B07C5006C4D735E3F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1B778FC3CA4E6D2C5FA62DF /* SettingsView.swift */; };
+		7AF8308C46937DDA63FB774A /* sketch.html in Resources */ = {isa = PBXBuildFile; fileRef = 6AE1A78E77890B7235EF0324 /* sketch.html */; };
+		88A082046E1B48343A3E0BAE /* sketch in Resources */ = {isa = PBXBuildFile; fileRef = 104BF87BA7CDDF2A23041512 /* sketch */; };
 		AD2BE13AF7E108527D0D94CF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B4B0823D38B05A2FD3CE75B /* MarkdownBlocks.swift */; };
 		C6C1E20E2608DB55A303BDE0 /* HebdoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 849AFB9F29643536117242B6 /* HebdoApp.swift */; };
+		CB5DEB3166145263B6FDD6C4 /* SketchEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78A5D6163F0C87A872EB8B2A /* SketchEditorView.swift */; };
 		DB0B95DEC8C300E3A7B04D23 /* NoteEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8979408A133DFD2D558CE5B /* NoteEditorView.swift */; };
 		FADC47B85E2DFB50748967D9 /* NotesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4033FE4E487DA227CAFB9D40 /* NotesListView.swift */; };
 		FB37C5897E2F1A95E7094762 /* CalendarHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = E584E81F813BFEB7BC282A6A /* CalendarHelper.swift */; };
@@ -20,12 +23,15 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		104BF87BA7CDDF2A23041512 /* sketch */ = {isa = PBXFileReference; lastKnownFileType = folder; name = sketch; path = ../ui/sketch; sourceTree = SOURCE_ROOT; };
 		122E2D214D319C7B95877086 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		1EB037CD7C6B6056DCC3FB9D /* HebdoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HebdoTheme.swift; sourceTree = "<group>"; };
 		3B4B0823D38B05A2FD3CE75B /* MarkdownBlocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownBlocks.swift; sourceTree = "<group>"; };
 		4033FE4E487DA227CAFB9D40 /* NotesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesListView.swift; sourceTree = "<group>"; };
 		412F85E25A2F6AE1A82CE5FA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4483558459895CDD985B40EF /* Hebdo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Hebdo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6AE1A78E77890B7235EF0324 /* sketch.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = sketch.html; sourceTree = "<group>"; };
+		78A5D6163F0C87A872EB8B2A /* SketchEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchEditorView.swift; sourceTree = "<group>"; };
 		849AFB9F29643536117242B6 /* HebdoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HebdoApp.swift; sourceTree = "<group>"; };
 		936D7F52FDE14B579C84851C /* NoteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteStore.swift; sourceTree = "<group>"; };
 		B8979408A133DFD2D558CE5B /* NoteEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteEditorView.swift; sourceTree = "<group>"; };
@@ -42,10 +48,21 @@
 			path = Hebdo;
 			sourceTree = "<group>";
 		};
+		129F29799E5C85E78E578769 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				6AE1A78E77890B7235EF0324 /* sketch.html */,
+			);
+			name = Resources;
+			path = Hebdo/Resources;
+			sourceTree = "<group>";
+		};
 		2D79701779F05B3DB9D2F2AE = {
 			isa = PBXGroup;
 			children = (
+				104BF87BA7CDDF2A23041512 /* sketch */,
 				0CE0D6A9BDF10E8CCE62736E /* Hebdo */,
+				129F29799E5C85E78E578769 /* Resources */,
 				40B9E777A8F435721AF88F8C /* Sources */,
 				B2FC283791619CC162D0424C /* Products */,
 			);
@@ -62,6 +79,7 @@
 				4033FE4E487DA227CAFB9D40 /* NotesListView.swift */,
 				936D7F52FDE14B579C84851C /* NoteStore.swift */,
 				E1B778FC3CA4E6D2C5FA62DF /* SettingsView.swift */,
+				78A5D6163F0C87A872EB8B2A /* SketchEditorView.swift */,
 				122E2D214D319C7B95877086 /* TodayView.swift */,
 			);
 			name = Sources;
@@ -137,6 +155,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				4C78FF1BC7F89C4FF3493FAD /* Assets.xcassets in Resources */,
+				88A082046E1B48343A3E0BAE /* sketch in Resources */,
+				7AF8308C46937DDA63FB774A /* sketch.html in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -155,6 +175,7 @@
 				FC8E8143FDDFA2A2E27942D1 /* NoteStore.swift in Sources */,
 				FADC47B85E2DFB50748967D9 /* NotesListView.swift in Sources */,
 				6CACE83B07C5006C4D735E3F /* SettingsView.swift in Sources */,
+				CB5DEB3166145263B6FDD6C4 /* SketchEditorView.swift in Sources */,
 				561770EC71854E28836B51A1 /* TodayView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -196,7 +217,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = LRU8S47CXH;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -255,7 +276,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = LRU8S47CXH;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
