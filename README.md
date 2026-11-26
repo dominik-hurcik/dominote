@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/dominik-hurcik/hebdo/releases/latest"><img src="docs/badge-release.svg" alt="Latest release"></a>
+  <a href="https://github.com/dominik-hurcik/hebdo/releases/latest"><img src="https://img.shields.io/github/v/release/dominik-hurcik/hebdo?label=download&cacheSeconds=3600" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platform-macOS%2011%2B%20%7C%20iOS%2017%2B-lightgrey" alt="macOS 11+ and iOS 17+">
   <img src="https://img.shields.io/badge/built%20with-Rust%20%2B%20SwiftUI-orange" alt="Built with Rust and SwiftUI">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
