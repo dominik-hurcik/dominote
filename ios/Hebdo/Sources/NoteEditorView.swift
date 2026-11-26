@@ -168,6 +168,7 @@ struct NoteEditorView: View {
                 TextField("Callout", text: binding, axis: .vertical)
                     .font(.system(size: 16, design: .serif))
                     .foregroundStyle(HebdoTheme.text)
+                    .fixedSize(horizontal: false, vertical: true)
                     .focused($focusedBlockID, equals: block.id)
                     .onSubmit { handleSubmit(at: idx) }
             }
@@ -183,6 +184,7 @@ struct NoteEditorView: View {
                 TextField("Quote", text: binding, axis: .vertical)
                     .font(.system(size: 16, design: .serif))
                     .foregroundStyle(HebdoTheme.text)
+                    .fixedSize(horizontal: false, vertical: true)
                     .focused($focusedBlockID, equals: block.id)
                     .onSubmit { handleSubmit(at: idx) }
             }
@@ -206,6 +208,7 @@ struct NoteEditorView: View {
                     .font(.system(size: 16, design: .serif))
                     .strikethrough(block.checked, color: HebdoTheme.faint)
                     .foregroundStyle(block.checked ? HebdoTheme.faint : HebdoTheme.text)
+                    .fixedSize(horizontal: false, vertical: true)
                     .focused($focusedBlockID, equals: block.id)
                     .onSubmit { handleSubmit(at: idx) }
             }
