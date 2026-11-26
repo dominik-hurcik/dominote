@@ -45,6 +45,7 @@ Most note apps ship a full browser engine, sync servers and a database. Hebdo do
 - Syntax highlighting for 37 languages, with automatic language detection.
 - Paste formatted text from Claude, web pages and other apps. Tables, headings, lists and code keep their structure.
 - Folders and pages in a sidebar. Drag to move, right-click to rename, deleted items go to the Trash or Recycle Bin.
+- Built-in mini-calendar pinned to the bottom-left of the sidebar. Press ⌘T or click any day to open a daily note in `Journal/` (or switch to Weekly notes in Settings). Empty days stay in-memory drafts until you type, so browsing never creates clutter.
 - Search across titles and page text with ⌘K, and find inside the open page with ⌘F.
 - ⌘+Click any link to open it in your browser.
 - Sketches: a whiteboard for brainstorming and presenting, powered by [Excalidraw](https://github.com/excalidraw/excalidraw). Shapes, arrows, freehand drawing, text and images, saved as `.excalidraw` files you can also open on excalidraw.com.
@@ -130,6 +131,7 @@ On Windows, use Ctrl for ⌘, Shift for ⇧ and Alt for ⌥. For example, ⇧⌘
 
 | Action | Shortcut |
 | --- | --- |
+| Today's note (or This week) | ⌘T |
 | New page | ⌘N |
 | New folder | ⇧⌘N |
 | New sketch | ⌥⌘N |
