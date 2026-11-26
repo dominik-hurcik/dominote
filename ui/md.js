@@ -38,10 +38,10 @@
         blocks.push({ type: 'table', rows });
         continue;
       }
-      if (/^>\s*\[!\w+\]/.test(t)) {
+      if ((m = t.match(/^>\s*\[!(\w+)\]/))) {
         const body = [];
         while (i + 1 < lines.length && /^\s*>/.test(lines[i + 1])) body.push(lines[++i].trim().replace(/^>\s?/, ''));
-        blocks.push({ type: 'callout', text: body.join(' ') });
+        blocks.push({ type: 'callout', kind: m[1].toUpperCase(), text: body.join(' ') });
         continue;
       }
       if ((m = t.match(/^(#{1,6})\s+(.*)$/))) { blocks.push({ type: 'h' + Math.min(3, m[1].length), text: m[2] }); continue; }
@@ -65,7 +65,7 @@
       case 'ol': return pad + olNum + '. ' + b.text;
       case 'todo': return pad + '- [' + (b.checked ? 'x' : ' ') + '] ' + b.text;
       case 'quote': return '> ' + b.text;
-      case 'callout': return '> [!NOTE]\n> ' + b.text;
+      case 'callout': return '> [!' + (b.kind || 'NOTE') + ']\n> ' + b.text;
       case 'divider': return '---';
       case 'code': return '```' + (b.lang || '') + '\n' + b.text + '\n```';
       case 'table': {

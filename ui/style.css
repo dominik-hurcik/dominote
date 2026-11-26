@@ -167,7 +167,7 @@ body.sketching.no-sidebar #sketch { top: 30px; }
 .block.done .content { text-decoration: line-through; color: var(--faint); }
 .block[data-type="quote"] .content { border-left: 3px solid var(--text); padding-left: 14px; }
 .block[data-type="callout"] { background: var(--callout-bg); border-radius: 6px; padding: 14px 16px; margin: 4px 0; gap: 10px; }
-.callout-icon { flex: none; }
+.callout-icon { flex: none; cursor: pointer; user-select: none; -webkit-user-select: none; }
 .block[data-type="divider"] { padding: 10px 0; outline: none; border-radius: 4px; }
 .block[data-type="divider"] hr { flex: 1; border: 0; border-top: 1px solid var(--border); margin: 0; }
 .block[data-type="divider"]:focus { background: rgba(35, 131, 226, 0.15); }
@@ -176,7 +176,8 @@ body.sketching.no-sidebar #sketch { top: 30px; }
   font: 0.85em/1 var(--code-font);
   background: var(--code-bg); color: #eb5757; padding: 2px 5px; border-radius: 4px;
 }
-.content a, .cell a { color: inherit; text-decoration: underline; text-decoration-color: var(--faint); }
+.content a, .cell a { color: inherit; text-decoration: underline; text-decoration-color: var(--faint); cursor: pointer; }
+.content a:hover, .cell a:hover { text-decoration-color: var(--accent); color: var(--accent); }
 
 .block[data-type="code"] { display: block; background: var(--code-bg); border-radius: 6px; margin: 6px 0; padding: 0; }
 .code-bar { display: flex; justify-content: space-between; padding: 6px 10px 0; }
@@ -272,6 +273,32 @@ td:focus, th:focus { box-shadow: inset 0 0 0 2px rgba(35, 131, 226, 0.5); }
 .seg button { border: 0; background: none; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 13px; color: var(--muted); }
 .seg button.on { background: var(--bg); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
 .setting-note { color: var(--faint); font-size: 12px; margin-top: 10px; }
+.setting-sep { height: 1px; background: var(--border); margin: 14px 0 8px; }
+.folder-ctl { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 260px; }
+.folder-path { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
+.folder-ctl button {
+  flex: none; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  border-radius: 6px; padding: 4px 10px; font-size: 13px; cursor: pointer;
+}
+.folder-ctl button:hover { background: var(--hover); }
+
+/* In-page find bar (Cmd+F) */
+#find-bar {
+  position: fixed; top: 14px; right: 20px; z-index: 55;
+  display: flex; align-items: center; gap: 4px;
+  background: var(--popup); border-radius: 8px; box-shadow: var(--shadow);
+  padding: 4px 6px 4px 10px; font-size: 13px;
+}
+#find-bar[hidden] { display: none; }
+#find-input { border: 0; background: none; color: var(--text); font-size: 13px; width: 180px; outline: none; }
+#find-count { color: var(--faint); font-size: 12px; min-width: 36px; text-align: center; }
+#find-bar button {
+  border: 0; background: none; color: var(--muted); cursor: pointer;
+  width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center;
+}
+#find-bar button:hover { background: var(--hover); color: var(--text); }
+::highlight(find-all) { background: rgba(255, 212, 0, 0.35); color: inherit; }
+::highlight(find-current) { background: rgba(255, 150, 50, 0.7); color: inherit; }
 
 /* Whole-block selection (drag across blocks, or Cmd+A twice) */
 .block.selected { background: rgba(35, 131, 226, 0.16); border-radius: 4px; }
@@ -286,7 +313,7 @@ td:focus, th:focus { box-shadow: inset 0 0 0 2px rgba(35, 131, 226, 0.5); }
     --hl-title: #8250df; --hl-type: #953800; --hl-tag: #116329; --hl-attr: #0550ae; --hl-meta: #6e7781;
   }
   html, body, #main { height: auto; overflow: visible; display: block; }
-  #sidebar, .drag, .top-drag, #page-view, #crumbs, #empty, #sketch, .code-bar, .table-ctl, .popup, #toast { display: none !important; }
+  #sidebar, .drag, .top-drag, #page-view, #find-bar, #crumbs, #empty, #sketch, .code-bar, .table-ctl, .popup, #toast { display: none !important; }
   #page { max-width: none; padding: 0; zoom: 1; } /* page margins come from the print command */
   #title:empty::before { content: none; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; transition: none !important; }

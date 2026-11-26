@@ -19,6 +19,13 @@
   </aside>
   <main id="main">
     <div class="drag top-drag" data-tauri-drag-region></div>
+    <div id="find-bar" hidden>
+      <input id="find-input" placeholder="Find in page…" autocomplete="off" spellcheck="false">
+      <span id="find-count"></span>
+      <button id="find-prev" title="Previous (⇧Enter)" aria-label="Previous">↑</button>
+      <button id="find-next" title="Next (Enter)" aria-label="Next">↓</button>
+      <button id="find-close" title="Close (Esc)" aria-label="Close">×</button>
+    </div>
     <details id="page-view" hidden>
       <summary>View</summary>
       <div class="view-options">
@@ -67,6 +74,15 @@
         </select>
       </label>
       <div class="setting-note">Pick from the list or type the name of any font installed on your Mac. Fonts only change how notes look, the .md files stay the same.</div>
+      <div class="setting-sep"></div>
+      <div class="setting">
+        <span>Notes folder</span>
+        <div class="folder-ctl">
+          <span id="set-root-path" class="folder-path"></span>
+          <button id="set-root-btn" type="button">Change…</button>
+        </div>
+      </div>
+      <div class="setting-note">Point this at an iCloud Drive or Dropbox folder to sync across devices.</div>
       <datalist id="font-list"></datalist>
       <datalist id="lang-list"></datalist>
     </div>
