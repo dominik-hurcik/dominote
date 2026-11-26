@@ -1,4 +1,4 @@
-// Dominote: notes are plain Markdown files in folders under one root directory.
+// Hebdo: notes are plain Markdown files in folders under one root directory.
 // That root is the whole "database", so AI agents and other tools can read and edit it directly.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -8,6 +8,26 @@ use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
 fn config_file() -> PathBuf {
+    #[cfg(target_os = "macos")]
+    {
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+        PathBuf::from(home).join("Library/Application Support/app.hebdo/root.txt")
+    }
+    #[cfg(windows)]
+    {
+        let base = std::env::var("APPDATA")
+            .or_else(|_| std::env::var("USERPROFILE"))
+            .unwrap_or_else(|_| ".".into());
+        PathBuf::from(base).join("app.hebdo").join("root.txt")
+    }
+    #[cfg(all(not(target_os = "macos"), not(windows)))]
+    {
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+        PathBuf::from(home).join(".config/hebdo/root.txt")
+    }
+}
+
+fn legacy_config_file() -> PathBuf {
     #[cfg(target_os = "macos")]
     {
         let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
@@ -28,12 +48,14 @@ fn config_file() -> PathBuf {
 }
 
 fn root() -> PathBuf {
-    let dir = std::env::var("DOMINOTE_DIR")
+    let dir = std::env::var("HEBDO_DIR")
+        .or_else(|_| std::env::var("DOMINOTE_DIR"))
         .ok()
         .filter(|s| !s.trim().is_empty())
         .map(PathBuf::from)
         .or_else(|| {
             fs::read_to_string(config_file())
+                .or_else(|_| fs::read_to_string(legacy_config_file()))
                 .ok()
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty())
@@ -42,7 +64,10 @@ fn root() -> PathBuf {
         .unwrap_or_else(|| {
             // HOME on macOS, USERPROFILE on Windows.
             let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).unwrap_or_else(|_| ".".into());
-            PathBuf::from(home).join("Documents").join("Dominote")
+            let docs = PathBuf::from(home).join("Documents");
+            let hebdo = docs.join("Hebdo");
+            let legacy = docs.join("Dominote");
+            if !hebdo.exists() && legacy.exists() { legacy } else { hebdo }
         });
     let _ = fs::create_dir_all(&dir);
     dir
@@ -131,7 +156,7 @@ async fn choose_root_dir(window: tauri::WebviewWindow) -> Result<Option<String>,
     let picked = window
         .dialog()
         .file()
-        .set_title("Choose your Dominote notes folder")
+        .set_title("Choose your Hebdo notes folder")
         .set_parent(&window)
         .blocking_pick_folder();
     let Some(picked) = picked else { return Ok(None) };
@@ -167,7 +192,7 @@ fn open_url(url: String) -> Result<(), String> {
 
 /// Whiteboards are Excalidraw files. They live in the Sketches folder, shown as its own sidebar section.
 const SKETCH: &str = ".excalidraw";
-const EMPTY_SKETCH: &str = r#"{"type":"excalidraw","version":2,"source":"dominote","elements":[],"appState":{},"files":{}}"#;
+const EMPTY_SKETCH: &str = r#"{"type":"excalidraw","version":2,"source":"hebdo","elements":[],"appState":{},"files":{}}"#;
 
 #[tauri::command]
 fn tree() -> Vec<Node> {
@@ -192,14 +217,21 @@ fn write_note(path: String, content: String) -> Result<(), String> {
 
 // ---------- page history ----------
 // Before a save overwrites a page, its previous text is copied to
-// <root>/.dominote/history/<page path>/<unix seconds>.md, at most once every 10 minutes.
+// <root>/.hebdo/history/<page path>/<unix seconds>.md, at most once every 10 minutes.
 // That keeps a version from before each editing session, so a bad edit can be rolled back
 // even after the app restarts. Hidden from the sidebar and search like any dot folder.
 const BACKUP_EVERY: u64 = 10 * 60;
 const KEEP_VERSIONS: usize = 100;
 
 fn history_dir(rel_path: &str) -> PathBuf {
-    root().join(".dominote/history").join(rel_path)
+    let cur = root().join(".hebdo/history").join(rel_path);
+    if !cur.exists() {
+        let legacy = root().join(".dominote/history").join(rel_path);
+        if legacy.exists() {
+            return legacy;
+        }
+    }
+    cur
 }
 
 fn history_ext(rel_path: &str) -> &'static str {
@@ -419,7 +451,7 @@ fn unlink(p: &Path) -> std::io::Result<()> {
 #[tauri::command]
 async fn link_folder(window: tauri::WebviewWindow, dir: String) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
-    let picked = window.dialog().file().set_title("Link a folder into Dominote").set_parent(&window).blocking_pick_folder();
+    let picked = window.dialog().file().set_title("Link a folder into Hebdo").set_parent(&window).blocking_pick_folder();
     let Some(picked) = picked else { return Ok(None) };
     let path = picked.into_path().map_err(|e| e.to_string())?;
     link_into(&dir, &path).map(Some)
@@ -517,7 +549,7 @@ fn main() {
             move_item, delete, search, history, read_version, link_folder, print_page
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Dominote");
+        .expect("error while running Hebdo");
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-# Builds Dominote for macOS (universal: Apple Silicon + Intel) and Windows (x64),
+# Builds Hebdo for macOS (universal: Apple Silicon + Intel) and Windows (x64),
 # and publishes both when a version tag is pushed.
 # Release: git tag v0.1.0 && git push origin v0.1.0
 # Run it by hand from the Actions tab to test both builds without publishing.
@@ -41,8 +41,8 @@ jobs:
         working-directory: target/universal-apple-darwin/release/bundle
         run: |
           mkdir -p "$GITHUB_WORKSPACE/out"
-          ditto -c -k --keepParent macos/Dominote.app "$GITHUB_WORKSPACE/out/Dominote.app.zip"
-          cp dmg/*.dmg "$GITHUB_WORKSPACE/out/Dominote.dmg"
+          ditto -c -k --keepParent macos/Hebdo.app "$GITHUB_WORKSPACE/out/Hebdo.app.zip"
+          cp dmg/*.dmg "$GITHUB_WORKSPACE/out/Hebdo.dmg"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -78,7 +78,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p out
-          cp target/release/bundle/nsis/*-setup.exe out/Dominote-setup.exe
+          cp target/release/bundle/nsis/*-setup.exe out/Hebdo-setup.exe
 
       - uses: actions/upload-artifact@v4
         with:
@@ -98,4 +98,4 @@ jobs:
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "Dominote $GITHUB_REF_NAME" --generate-notes out/*
+        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "Hebdo $GITHUB_REF_NAME" --generate-notes out/*

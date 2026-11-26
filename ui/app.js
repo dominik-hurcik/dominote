@@ -1,4 +1,4 @@
-// Dominote UI. The DOM is the source of truth while editing; it is serialized to Markdown on save.
+// Hebdo UI. The DOM is the source of truth while editing; it is serialized to Markdown on save.
 const { invoke } = window.__TAURI__.core;
 const $ = s => document.querySelector(s);
 const editor = $('#editor'), titleEl = $('#title'), treeEl = $('#tree');
