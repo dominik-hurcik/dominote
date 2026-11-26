@@ -1,6 +1,6 @@
 [package]
 name = "hebdo"
-version = "0.8.0"
+version = "0.8.1"
 edition = "2021"
 description = "A fast, local Markdown note app for macOS and Windows"
 license = "MIT"

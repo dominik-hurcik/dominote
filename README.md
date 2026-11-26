@@ -90,16 +90,7 @@ The script downloads the latest release, copies `Hebdo.app` into `/Applications`
 
 1. Download `Hebdo.dmg` from the [latest release](https://github.com/dominik-hurcik/hebdo/releases/latest).
 2. Open it and drag Hebdo into Applications.
-3. Open Hebdo. macOS will say it can't verify the developer.
-4. Open **System Settings > Privacy & Security**, scroll down, and click **Open Anyway** next to the Hebdo message.
-
-You only do step 4 once. To skip it, run this in Terminal after step 2:
-
-```sh
-xattr -dr com.apple.quarantine /Applications/Hebdo.app
-```
-
-macOS shows the warning because the app isn't signed with a paid Apple Developer ID. The install script avoids it because files downloaded with `curl` don't get the quarantine flag.
+3. Open Hebdo — it is signed and notarized by Apple, so it opens without any Gatekeeper warning.
 
 ### Windows
 
