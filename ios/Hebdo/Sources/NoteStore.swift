@@ -34,10 +34,15 @@ enum SyncSource: Equatable {
 
 @MainActor
 final class NoteStore: ObservableObject {
+    static let emptySketchJSON = #"{"type":"excalidraw","version":2,"source":"hebdo","elements":[],"appState":{},"files":{}}"#
+
     @Published var tree: [NoteNode] = []
+    @Published var sketches: [NoteNode] = []
     @Published var journalPaths: Set<String> = []
     @Published var syncSource: SyncSource = .localDevice
     @Published var errorMessage: String?
+
+    static func isSketch(_ path: String) -> Bool { path.hasSuffix(".excalidraw") }
 
     private static let bookmarkKey = "hebdo.customFolderBookmark"
     private static let ubiquityID = "iCloud.app.hebdo"
@@ -120,7 +125,7 @@ final class NoteStore: ObservableObject {
 
         let query = NSMetadataQuery()
         query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
-        query.predicate = NSPredicate(format: "%K LIKE '*.md'", NSMetadataItemFSNameKey)
+        query.predicate = NSPredicate(format: "%K LIKE '*.md' OR %K LIKE '*.excalidraw'", NSMetadataItemFSNameKey, NSMetadataItemFSNameKey)
 
         NotificationCenter.default.addObserver(
             forName: .NSMetadataQueryDidFinishGathering,
@@ -169,8 +174,14 @@ final class NoteStore: ObservableObject {
 
     func refreshTree() {
         var journals = Set<String>()
-        let nodes = walk(dir: rootURL, prefix: "", depth: 0, journals: &journals)
-        tree = nodes
+        let all = walk(dir: rootURL, prefix: "", depth: 0, journals: &journals)
+        if let sk = all.first(where: { $0.isDir && $0.path == "Sketches" }) {
+            sketches = sk.children
+            tree = all.filter { $0.path != "Sketches" }
+        } else {
+            sketches = []
+            tree = all
+        }
         journalPaths = journals
     }
 
@@ -191,12 +202,14 @@ final class NoteStore: ObservableObject {
             let rel = prefix.isEmpty ? name : "\(prefix)/\(name)"
 
             if isDir {
-                if name == "Sketches" && prefix.isEmpty { continue } // v1 iOS focuses on Markdown notes
                 let children = walk(dir: url, prefix: rel, depth: depth + 1, journals: &journals)
                 out.append(NoteNode(name: name, path: rel, isDir: true, children: children))
             } else if name.hasSuffix(".md") {
                 let title = String(name.dropLast(3))
                 if rel.hasPrefix("Journal/") { journals.insert(rel) }
+                out.append(NoteNode(name: title, path: rel, isDir: false, children: []))
+            } else if name.hasSuffix(".excalidraw") {
+                let title = String(name.dropLast(".excalidraw".count))
                 out.append(NoteNode(name: title, path: rel, isDir: false, children: []))
             }
         }
@@ -251,6 +264,20 @@ final class NoteStore: ObservableObject {
         }
         let rel = dir.isEmpty ? "\(name).md" : "\(dir)/\(name).md"
         writeNote(at: rel, content: "")
+        return rel
+    }
+
+    func createSketch() -> String {
+        let baseDir = fileURL(for: "Sketches")
+        try? FileManager.default.createDirectory(at: baseDir, withIntermediateDirectories: true)
+        var name = "Sketch"
+        var i = 2
+        while FileManager.default.fileExists(atPath: baseDir.appendingPathComponent("\(name).excalidraw").path) {
+            name = "Sketch \(i)"
+            i += 1
+        }
+        let rel = "Sketches/\(name).excalidraw"
+        writeNote(at: rel, content: Self.emptySketchJSON)
         return rel
     }
 

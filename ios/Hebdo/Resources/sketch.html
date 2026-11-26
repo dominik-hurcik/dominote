@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <link rel="stylesheet" href="sketch/main.css">
+  <style>
+    html, body, #root { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    window.EXCALIDRAW_ASSET_PATH = new URL('sketch/', location.href).href;
+    let api = null, saveTimer = null, pendingInit = null;
+
+    function mountWith(json, theme) {
+      import('./sketch/main.js').then(lib => {
+        if (api) api.unmount();
+        api = lib.mount(document.getElementById('root'), {
+          json,
+          theme,
+          onChange: () => {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+              if (!api) return;
+              window.webkit?.messageHandlers?.hebdoSketch?.postMessage({ type: 'save', json: api.json() });
+            }, 400);
+          },
+        });
+      }).catch(err => {
+        window.webkit?.messageHandlers?.hebdoSketch?.postMessage({ type: 'error', message: String(err) });
+      });
+    }
+
+    window.__hebdoInit = (json, theme) => mountWith(json, theme);
+    window.__hebdoTheme = (theme) => { api?.setTheme(theme); };
+    window.__hebdoFlush = () => {
+      clearTimeout(saveTimer);
+      if (api) window.webkit?.messageHandlers?.hebdoSketch?.postMessage({ type: 'save', json: api.json() });
+    };
+    window.webkit?.messageHandlers?.hebdoSketch?.postMessage({ type: 'ready' });
+  </script>
+</body>
+</html>
