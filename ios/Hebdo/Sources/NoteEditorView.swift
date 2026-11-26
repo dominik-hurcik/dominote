@@ -32,41 +32,45 @@ struct NoteEditorView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 4) {
-                if !breadcrumb.isEmpty {
-                    Text(breadcrumb)
-                        .font(.system(size: 13, design: .serif))
-                        .foregroundStyle(HebdoTheme.faint)
-                        .padding(.bottom, 2)
-                }
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                VStack(alignment: .leading, spacing: 4) {
+                    if !breadcrumb.isEmpty {
+                        Text(breadcrumb)
+                            .font(.system(size: 13, design: .serif))
+                            .foregroundStyle(HebdoTheme.faint)
+                            .padding(.bottom, 2)
+                    }
 
-                if allowTitleEdit {
-                    TextField("Untitled", text: $titleText)
-                        .font(.system(size: 34, weight: .bold, design: .serif))
-                        .foregroundStyle(HebdoTheme.text)
-                        .padding(.bottom, 10)
-                        .onSubmit { commitRename() }
-                } else {
-                    Text(titleText)
-                        .font(.system(size: 34, weight: .bold, design: .serif))
-                        .foregroundStyle(HebdoTheme.text)
-                        .padding(.bottom, 10)
-                }
+                    if allowTitleEdit {
+                        TextField("Untitled", text: $titleText)
+                            .font(.system(size: 34, weight: .bold, design: .serif))
+                            .foregroundStyle(HebdoTheme.text)
+                            .padding(.bottom, 10)
+                            .onSubmit { commitRename() }
+                    } else {
+                        Text(titleText)
+                            .font(.system(size: 34, weight: .bold, design: .serif))
+                            .foregroundStyle(HebdoTheme.text)
+                            .padding(.bottom, 10)
+                    }
 
-                ForEach(Array(blocks.enumerated()), id: \.element.id) { idx, _ in
-                    blockRow(at: idx)
-                }
+                    ForEach(Array(blocks.enumerated()), id: \.element.id) { idx, _ in
+                        blockRow(at: idx)
+                    }
 
-                // Tap empty space below blocks to continue writing
-                Color.clear
-                    .frame(height: 180)
-                    .contentShape(Rectangle())
-                    .onTapGesture { appendOrFocusLast() }
+                    // Tap empty space below blocks to continue writing
+                    Color.clear
+                        .frame(height: 180)
+                        .contentShape(Rectangle())
+                        .onTapGesture { appendOrFocusLast() }
+                }
+                .padding(.horizontal, 22)
+                .padding(.top, 16)
+                .padding(.bottom, 40)
+                .frame(maxWidth: 720, alignment: .leading)
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 22)
-            .padding(.top, 16)
-            .padding(.bottom, 40)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollDismissesKeyboard(.interactively)
         .background(HebdoTheme.bg)
