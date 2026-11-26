@@ -5,15 +5,15 @@
 <h1 align="center">Hebdo</h1>
 
 <p align="center">
-  A fast, open source note-taking app for macOS and Windows, built with Rust and Tauri.<br>
-  Your notes are plain Markdown files in a folder you own.
+  A fast, open source note-taking app for macOS and iOS, built with Rust, Tauri, and SwiftUI.<br>
+  Your notes are plain Markdown files synced automatically via iCloud Drive — no servers, no logins.
 </p>
 
 <p align="center">
   <a href="https://hebdo.app">hebdo.app</a> ·
   <a href="https://github.com/dominik-hurcik/hebdo/releases/latest"><img src="https://img.shields.io/github/v/release/dominik-hurcik/hebdo?label=download&cacheSeconds=3600" alt="Latest release"></a>
-  <img src="https://img.shields.io/badge/platform-macOS%2011%2B%20%7C%20Windows%2010%2B-lightgrey" alt="macOS 11+ and Windows 10+">
-  <img src="https://img.shields.io/badge/built%20with-Rust%20%2B%20Tauri-orange" alt="Built with Rust and Tauri">
+  <img src="https://img.shields.io/badge/platform-macOS%2011%2B%20%7C%20iOS%2017%2B-lightgrey" alt="macOS 11+ and iOS 17+">
+  <img src="https://img.shields.io/badge/built%20with-Rust%20%2B%20SwiftUI-orange" alt="Built with Rust and SwiftUI">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
 </p>
 
@@ -72,7 +72,7 @@ Most note apps ship a full browser engine, sync servers and a database. Hebdo do
 
 ## Install
 
-Hebdo runs on macOS 11 or later (Apple Silicon and Intel) and on Windows 10 or 11 (x64).
+Hebdo runs on **macOS 11+** (Apple Silicon and Intel) and **iOS 17+** (native SwiftUI companion in `ios/`).
 
 ### macOS
 
@@ -84,7 +84,7 @@ Paste this into Terminal:
 curl -fsSL https://hebdo.app/install.sh | bash
 ```
 
-The script downloads the latest release, copies `Hebdo.app` into `/Applications` and opens it. Run the same command again to update. The script is [short enough to read](install.sh) before you run it.
+The script downloads the latest signed & notarized release, copies `Hebdo.app` into `/Applications` and opens it. Run the same command again to update.
 
 #### Option 2: Download the .dmg
 
@@ -92,25 +92,15 @@ The script downloads the latest release, copies `Hebdo.app` into `/Applications`
 2. Open it and drag Hebdo into Applications.
 3. Open Hebdo — it is signed and notarized by Apple, so it opens without any Gatekeeper warning.
 
-### Windows
+### iOS (iPhone & iPad)
 
-#### Option 1: Install script (recommended)
+The native SwiftUI companion app lives in [`ios/`](ios/). It syncs automatically with Hebdo for Mac over **iCloud Drive / Hebdo** — zero servers, zero logins:
 
-Paste this into PowerShell:
-
-```powershell
-irm https://hebdo.app/install.ps1 | iex
+```sh
+cd ios && xcodegen generate && open Hebdo.xcodeproj
 ```
 
-The script downloads the latest release, installs Hebdo for your user only, adds it to the Start menu and opens it. It needs no admin rights. Run the same command again to update. Read [install.ps1](install.ps1) before you run it.
-
-#### Option 2: Download the installer
-
-1. Download `Hebdo-setup.exe` from the [latest release](https://github.com/dominik-hurcik/hebdo/releases/latest).
-2. Run it. Windows may say "Windows protected your PC".
-3. Click **More info**, then **Run anyway**.
-
-Windows shows the warning because the app isn't code-signed. The install script avoids it because files downloaded with PowerShell aren't marked as coming from the internet. Some company laptops block unsigned apps entirely. In that case, ask your IT team.
+Select your iPhone in Xcode and press **⌘R**.
 
 ### Build from source
 

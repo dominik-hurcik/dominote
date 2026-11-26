@@ -29,8 +29,7 @@
     "active": true,
     "targets": [
       "app",
-      "dmg",
-      "nsis"
+      "dmg"
     ],
     "category": "Productivity",
     "macOS": {
@@ -41,13 +40,7 @@
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
-      "icons/icon.png",
-      "icons/icon.ico"
-    ],
-    "windows": {
-      "nsis": {
-        "installMode": "currentUser"
-      }
-    }
+      "icons/icon.png"
+    ]
   }
 }

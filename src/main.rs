@@ -8,43 +8,13 @@ use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
 fn config_file() -> PathBuf {
-    #[cfg(target_os = "macos")]
-    {
-        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-        PathBuf::from(home).join("Library/Application Support/app.hebdo/root.txt")
-    }
-    #[cfg(windows)]
-    {
-        let base = std::env::var("APPDATA")
-            .or_else(|_| std::env::var("USERPROFILE"))
-            .unwrap_or_else(|_| ".".into());
-        PathBuf::from(base).join("app.hebdo").join("root.txt")
-    }
-    #[cfg(all(not(target_os = "macos"), not(windows)))]
-    {
-        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-        PathBuf::from(home).join(".config/hebdo/root.txt")
-    }
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+    PathBuf::from(home).join("Library/Application Support/app.hebdo/root.txt")
 }
 
 fn legacy_config_file() -> PathBuf {
-    #[cfg(target_os = "macos")]
-    {
-        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-        PathBuf::from(home).join("Library/Application Support/com.dominote.app/root.txt")
-    }
-    #[cfg(windows)]
-    {
-        let base = std::env::var("APPDATA")
-            .or_else(|_| std::env::var("USERPROFILE"))
-            .unwrap_or_else(|_| ".".into());
-        PathBuf::from(base).join("com.dominote.app").join("root.txt")
-    }
-    #[cfg(all(not(target_os = "macos"), not(windows)))]
-    {
-        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-        PathBuf::from(home).join(".config/dominote/root.txt")
-    }
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+    PathBuf::from(home).join("Library/Application Support/com.dominote.app/root.txt")
 }
 
 fn root() -> PathBuf {
@@ -62,9 +32,13 @@ fn root() -> PathBuf {
                 .map(PathBuf::from)
         })
         .unwrap_or_else(|| {
-            // HOME on macOS, USERPROFILE on Windows.
-            let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).unwrap_or_else(|_| ".".into());
-            let docs = PathBuf::from(home).join("Documents");
+            let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()));
+            // Automatically share the iCloud Drive container with Hebdo iOS if present.
+            let icloud = home.join("Library/Mobile Documents/iCloud~app~hebdo/Documents");
+            if icloud.is_dir() {
+                return icloud;
+            }
+            let docs = home.join("Documents");
             let hebdo = docs.join("Hebdo");
             let legacy = docs.join("Dominote");
             if !hebdo.exists() && legacy.exists() { legacy } else { hebdo }
@@ -180,13 +154,7 @@ fn open_url(url: String) -> Result<(), String> {
     if !(lower.starts_with("http://") || lower.starts_with("https://") || lower.starts_with("mailto:")) {
         return Err("unsupported link scheme".into());
     }
-    #[cfg(target_os = "macos")]
-    let status = Command::new("open").arg(trimmed).status();
-    #[cfg(windows)]
-    let status = Command::new("cmd").args(["/C", "start", "", trimmed]).status();
-    #[cfg(all(not(target_os = "macos"), not(windows)))]
-    let status = Command::new("xdg-open").arg(trimmed).status();
-    let status = status.map_err(|e| e.to_string())?;
+    let status = Command::new("open").arg(trimmed).status().map_err(|e| e.to_string())?;
     if status.success() { Ok(()) } else { Err("could not open link".into()) }
 }
 
@@ -447,23 +415,13 @@ fn link_into(dir: &str, target: &Path) -> Result<String, String> {
     Ok(rel(&at))
 }
 
-#[cfg(unix)]
 fn make_link(target: &Path, at: &Path) -> std::io::Result<()> {
     std::os::unix::fs::symlink(target, at)
 }
-#[cfg(windows)]
-fn make_link(target: &Path, at: &Path) -> std::io::Result<()> {
-    junction::create(target, at)
-}
 
 /// Removes only the link, never the folder it points to.
-#[cfg(unix)]
 fn unlink(p: &Path) -> std::io::Result<()> {
     fs::remove_file(p)
-}
-#[cfg(windows)]
-fn unlink(p: &Path) -> std::io::Result<()> {
-    fs::remove_dir(p)
 }
 
 /// Ask for a folder with the system picker, then link it into `dir`. None when the picker is cancelled.

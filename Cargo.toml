@@ -2,7 +2,7 @@
 name = "hebdo"
 version = "0.8.1"
 edition = "2021"
-description = "A fast, local Markdown note app for macOS and Windows"
+description = "A fast, local Markdown note app for macOS and iOS"
 license = "MIT"
 repository = "https://github.com/dominik-hurcik/hebdo"
 
@@ -29,7 +29,3 @@ objc2 = "0.6"
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSPrintInfo", "NSPrintOperation", "NSResponder", "NSView", "NSWindow"] }
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString"] }
 objc2-web-kit = { version = "0.3", default-features = false, features = ["std", "objc2-app-kit", "WKWebView"] }
-
-# Linked folders on Windows are directory junctions, which need no admin rights.
-[target.'cfg(windows)'.dependencies]
-junction = "1"

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hebdo — Fast, local Markdown notes &amp; sketches</title>
-  <meta name="description" content="A fast, open source Markdown note-taking app and whiteboard for macOS and Windows. No servers, no logins — just plain files in a folder you own.">
+  <meta name="description" content="A fast, open source Markdown note-taking app for macOS and iOS. Synced automatically via iCloud Drive — no servers, no logins.">
   <link rel="icon" type="image/png" href="icon.png">
   <style>
     :root {
@@ -155,25 +155,20 @@
       <img class="hero-icon" src="icon.png" alt="Hebdo icon">
       <h1>Plain Markdown notes.<br>No servers, no logins.</h1>
       <p class="lead">
-        A 7 MB open source note-taking app and whiteboard for macOS and Windows, built with Rust and Tauri.
-        Every note is a plain <code>.md</code> file in a folder you own.
+        A 7 MB open source note-taking app for macOS &amp; iOS, built with Rust, Tauri, and SwiftUI.
+        Every note is a plain <code>.md</code> file synced automatically over iCloud Drive.
       </p>
 
       <div class="install-card">
-        <div class="tabs" role="tablist">
-          <button class="tab active" data-os="mac" type="button">macOS</button>
-          <button class="tab" data-os="win" type="button">Windows</button>
-        </div>
         <div class="cmd-row">
           <code id="install-cmd">curl -fsSL https://hebdo.app/install.sh | bash</code>
           <button class="copy-btn" id="copy-btn" type="button">Copy</button>
         </div>
       </div>
       <p class="alt-links">
-        Or download directly:
-        <a href="https://github.com/dominik-hurcik/hebdo/releases/latest/download/Hebdo.dmg">macOS (.dmg)</a> ·
-        <a href="https://github.com/dominik-hurcik/hebdo/releases/latest/download/Hebdo-setup.exe">Windows (.exe)</a> ·
-        <a href="https://github.com/dominik-hurcik/hebdo">Source on GitHub</a>
+        Signed &amp; notarized for macOS 11+ ·
+        <a href="https://github.com/dominik-hurcik/hebdo/releases/latest/download/Hebdo.dmg">Download .dmg</a> ·
+        <a href="https://github.com/dominik-hurcik/hebdo">Source &amp; iOS app on GitHub</a>
       </p>
     </section>
 
@@ -231,19 +226,8 @@
   </div>
 
   <script>
-    const CMDS = {
-      mac: 'curl -fsSL https://hebdo.app/install.sh | bash',
-      win: 'irm https://hebdo.app/install.ps1 | iex',
-    };
     const cmdEl = document.getElementById('install-cmd');
     const copyBtn = document.getElementById('copy-btn');
-    const tabs = document.querySelectorAll('.tab');
-    function setOs(os) {
-      tabs.forEach(t => t.classList.toggle('active', t.dataset.os === os));
-      cmdEl.textContent = CMDS[os];
-    }
-    if (/Win/i.test(navigator.platform)) setOs('win');
-    tabs.forEach(t => t.addEventListener('click', () => setOs(t.dataset.os)));
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(cmdEl.textContent).then(() => {
         copyBtn.textContent = 'Copied';
