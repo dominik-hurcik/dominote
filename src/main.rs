@@ -208,6 +208,9 @@ fn read_note(path: String) -> Result<String, String> {
 #[tauri::command]
 fn write_note(path: String, content: String) -> Result<(), String> {
     let p = resolve(&path)?;
+    if let Some(parent) = p.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
     // Write to a temp file then rename, so a crash mid-write never corrupts a note.
     let tmp = p.with_file_name(format!(".{}.tmp", p.file_name().unwrap().to_string_lossy()));
     fs::write(&tmp, &content).map_err(|e| e.to_string())?;
@@ -346,6 +349,22 @@ fn create_note(dir: String, sketch: Option<bool>) -> Result<String, String> {
     let sketch = sketch.unwrap_or(false);
     let p = unique(&d, "Untitled", if sketch { SKETCH } else { ".md" });
     fs::write(&p, if sketch { EMPTY_SKETCH } else { "" }).map_err(|e| e.to_string())?;
+    Ok(rel(&p))
+}
+
+/// Open an existing note or create it with `template` if it does not exist yet (used by Weekly/Daily calendar notes).
+#[tauri::command]
+fn open_or_create_note(path: String, template: String) -> Result<String, String> {
+    if !path.ends_with(".md") {
+        return Err("calendar notes must be .md files".into());
+    }
+    let p = resolve(&path)?;
+    if !p.exists() {
+        if let Some(parent) = p.parent() {
+            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        fs::write(&p, template).map_err(|e| e.to_string())?;
+    }
     Ok(rel(&p))
 }
 
@@ -545,8 +564,8 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            root_dir, choose_root_dir, open_url, tree, read_note, write_note, create_note, create_folder, rename,
-            move_item, delete, search, history, read_version, link_folder, print_page
+            root_dir, choose_root_dir, open_url, tree, read_note, write_note, create_note, open_or_create_note,
+            create_folder, rename, move_item, delete, search, history, read_version, link_folder, print_page
         ])
         .run(tauri::generate_context!())
         .expect("error while running Hebdo");
@@ -649,6 +668,24 @@ mod tests {
         assert_eq!(count_sketch_elements(s2), 2);
         assert!(open_url("javascript:alert(1)".into()).is_err());
         assert!(open_url("file:///etc/passwd".into()).is_err());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn open_or_create_note_creates_once_and_preserves_existing() {
+        let _lock = ROOT.lock().unwrap();
+        let dir = std::env::temp_dir().join(format!("hebdo-cal-{}", std::process::id()));
+        std::env::set_var("HEBDO_DIR", &dir);
+        let _ = fs::remove_dir_all(&dir);
+        let p = open_or_create_note("Journal/2026-W48.md".into(), "initial".into()).unwrap();
+        assert_eq!(p, "Journal/2026-W48.md");
+        assert_eq!(read_note(p.clone()).unwrap(), "initial");
+        let p2 = open_or_create_note("Journal/2026-W48.md".into(), "should not overwrite".into()).unwrap();
+        assert_eq!(p2, p);
+        assert_eq!(read_note(p).unwrap(), "initial");
+        assert!(open_or_create_note("../escape.md".into(), "x".into()).is_err());
+        assert!(open_or_create_note("Journal/not-md.txt".into(), "x".into()).is_err());
+        std::env::remove_var("HEBDO_DIR");
         let _ = fs::remove_dir_all(&dir);
     }
 }
