@@ -10,11 +10,13 @@
   <aside id="sidebar">
     <div class="drag" data-tauri-drag-region></div>
     <button class="side-btn" id="search-btn" title="Search (⌘K)">Search <kbd>⌘K</kbd></button>
+    <button class="side-btn" id="today-btn" title="Today (⌘T)"><span id="today-label">Today</span> <kbd>⌘T</kbd></button>
     <button class="side-btn" id="new-note-btn" title="New page (⌘N)">New page <kbd>⌘N</kbd></button>
     <button class="side-btn" id="new-folder-btn" title="New folder (⇧⌘N)">New folder <kbd>⇧⌘N</kbd></button>
     <button class="side-btn" id="new-sketch-btn" title="New sketch (⌥⌘N)">New sketch <kbd>⌥⌘N</kbd></button>
     <button class="side-btn" id="settings-btn" title="Settings (⌘,)">Settings <kbd>⌘,</kbd></button>
     <div id="tree" role="tree"></div>
+    <div id="calendar" aria-label="Calendar"></div>
     <div id="root-path" title="Notes folder. Click to copy the path for AI agents."></div>
   </aside>
   <main id="main">
@@ -64,6 +66,11 @@
           <button data-theme="system">System</button><button data-theme="light">Light</button><button data-theme="dark">Dark</button>
         </div>
       </div>
+      <div class="setting"><span>Calendar notes</span>
+        <div class="seg" id="cal-mode-seg">
+          <button data-cal="daily">Daily</button><button data-cal="weekly">Weekly</button>
+        </div>
+      </div>
       <label class="setting"><span>Menu font</span><input id="set-ui-font" list="font-list" spellcheck="false"></label>
       <label class="setting"><span>Page font</span><input id="set-page-font" list="font-list" spellcheck="false"></label>
       <label class="setting"><span>Code font</span><input id="set-code-font" list="font-list" spellcheck="false"></label>
@@ -91,6 +98,7 @@
 
   <script src="vendor/highlight.min.js"></script>
   <script src="md.js"></script>
+  <script src="cal.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

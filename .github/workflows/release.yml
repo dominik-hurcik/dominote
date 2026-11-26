@@ -30,6 +30,7 @@ jobs:
         run: |
           node tests/md.test.js
           node tests/view.test.js
+          node tests/cal.test.js
           cargo test
 
       - name: Build
@@ -67,6 +68,7 @@ jobs:
         run: |
           node tests/md.test.js
           node tests/view.test.js
+          node tests/cal.test.js
           cargo test
 
       - name: Build

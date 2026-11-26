@@ -90,7 +90,49 @@ body.no-sidebar #sidebar { display: none; }
   color: var(--muted); text-align: left; cursor: pointer;
 }
 .side-btn:hover { background: var(--hover); }
-#tree { margin-top: 10px; flex: 1; overflow-y: auto; scrollbar-width: none; }
+/* Mini calendar (pinned bottom-left below the tree) */
+#calendar {
+  flex: none;
+  margin: 6px 4px 2px; padding: 8px 6px 6px;
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  font-size: 11.5px;
+}
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; padding: 0 2px; }
+.cal-title {
+  border: 0; background: none; color: var(--text); font: 600 12px var(--ui-font);
+  cursor: pointer; padding: 2px 4px; border-radius: 4px;
+}
+.cal-title:hover { background: var(--hover); }
+.cal-nav { display: flex; gap: 2px; }
+.cal-nav button {
+  border: 0; background: none; color: var(--muted); cursor: pointer;
+  width: 22px; height: 22px; border-radius: 4px; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+.cal-nav button:hover { background: var(--hover); color: var(--text); }
+.cal-dow, .cal-row { display: grid; grid-template-columns: 24px repeat(7, 1fr); align-items: center; text-align: center; }
+.cal-dow { color: var(--faint); font-size: 10px; margin-bottom: 2px; }
+.cal-row { border-radius: 5px; height: 24px; cursor: pointer; }
+#calendar.weekly .cal-row:hover { background: var(--hover); }
+#calendar.weekly .cal-row.active { background: var(--active); }
+.cal-wk { position: relative; font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.cal-wk.has-note::after {
+  content: ""; position: absolute; left: 50%; bottom: -3px; transform: translateX(-50%);
+  width: 3.5px; height: 3.5px; border-radius: 50%; background: var(--accent);
+}
+.cal-day {
+  position: relative; height: 22px; line-height: 22px; border-radius: 4px;
+  color: var(--text); font-variant-numeric: tabular-nums;
+}
+.cal-day.out { color: var(--faint); opacity: 0.65; }
+.cal-day.today { color: var(--accent); font-weight: 700; }
+#calendar.daily .cal-day:hover { background: var(--hover); }
+#calendar.daily .cal-day.active { background: var(--active); font-weight: 600; }
+#calendar.daily .cal-day.has-note::after {
+  content: ""; position: absolute; left: 50%; bottom: 1px; transform: translateX(-50%);
+  width: 3.5px; height: 3.5px; border-radius: 50%; background: var(--accent);
+}
+#tree { margin-top: 8px; flex: 1; overflow-y: auto; scrollbar-width: none; }
 #tree::-webkit-scrollbar { display: none; }
 #tree.drop-root { background: var(--hover); border-radius: 6px; }
 .item {

@@ -39,6 +39,7 @@ if (IS_WIN) {
 
 let current = null;      // open note path, relative to the notes root
 let lastSaved = null;    // Markdown last read from / written to disk for `current`
+let draftNote = false;   // true for an untouched calendar day/week not yet written to disk
 let saveTimer = null, renameTimer = null;
 let selectedDir = '';
 let rootDir = '';
@@ -49,6 +50,8 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 const openDirs = new Set(store.get('openDirs', []));
+const journalPaths = new Set();
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
 
 // View preferences stay on this Mac, separate from Markdown content.
 const pageViews = store.get('pageViews', {});
@@ -894,6 +897,12 @@ function renameCurrent() {
     const name = titleEl.textContent.trim();
     if (!current || !name || name === base(current)) return;
     try {
+      if (draftNote) {
+        const md = serializeDoc();
+        await invoke('write_note', { path: current, content: md });
+        lastSaved = md;
+        draftNote = false;
+      }
       const np = await invoke('rename', { path: current, name });
       remapPageViews(current, np);
       current = np;
@@ -917,8 +926,16 @@ function save() {
     if (!current) return;
     const md = serializeDoc();
     if (md === lastSaved) return;
+    const wasDraft = draftNote;
     await invoke('write_note', { path: current, content: md });
     lastSaved = md;
+    if (wasDraft) {
+      draftNote = false;
+      store.set('last', current);
+      const d = dirOf(current);
+      if (d) { openDirs.add(d); store.set('openDirs', [...openDirs]); }
+      await refreshTree(true);
+    }
   }).catch(err => toast('Save failed: ' + err));
 }
 async function flush() {
@@ -978,6 +995,7 @@ function showEmpty() {
   closeFind();
   closeSketch(false);
   current = null;
+  draftNote = false;
   lastSaved = null;
   $('#page').hidden = true;
   applyPageView();
@@ -994,6 +1012,7 @@ async function openNote(path, { focusTitle = false } = {}) {
   let md;
   try { md = await invoke('read_note', { path }); } catch (err) { toast(err); return; }
   current = path;
+  draftNote = false;
   applyPageView();
   lastSaved = md;
   selectedDir = dirOf(path);
@@ -1089,6 +1108,7 @@ async function openSketch(path) {
   closeSlash();
   closeFind();
   current = null;
+  draftNote = false;
   lastSaved = null;
   $('#page').hidden = true;
   applyPageView();
@@ -1160,6 +1180,7 @@ async function refreshTree(force) {
   const json = JSON.stringify(nodes);
   if (!force && json === treeJson) return;
   treeJson = json;
+  collectJournalPaths(nodes);
   treeEl.replaceChildren();
   const sk = nodes.find(n => n.dir && n.path === SKETCHES);
   const notes = nodes.filter(n => n !== sk);
@@ -1210,6 +1231,7 @@ function renderNodes(nodes, parent, depth) {
 function markActive() {
   const open = current || sketchPath;
   for (const el of treeEl.querySelectorAll('.item')) el.classList.toggle('active', el.dataset.path === open);
+  renderCalendar();
 }
 function expandTo(path) {
   const parts = path.split('/');
@@ -1518,7 +1540,7 @@ const FONTS = {
   'Menlo': 'Menlo, monospace',
   'Courier New': '"Courier New", Courier, monospace',
 };
-const DEFAULTS = { theme: 'light', uiFont: 'New York', pageFont: 'New York', codeFont: 'SF Mono', pageSize: '16' };
+const DEFAULTS = { theme: 'light', uiFont: 'New York', pageFont: 'New York', codeFont: 'SF Mono', pageSize: '16', calMode: 'daily' };
 const settings = { ...DEFAULTS, ...store.get('settings', {}) };
 const fontStack = name => FONTS[name] || `"${name.replace(/"/g, '')}", ${FONTS.System}`;
 
@@ -1533,6 +1555,11 @@ function applySettings() {
   root.style.setProperty('--code-font', fontStack(settings.codeFont));
   root.style.setProperty('--page-size', settings.pageSize + 'px');
   for (const b of $('#theme-seg').children) b.classList.toggle('on', b.dataset.theme === settings.theme);
+  for (const b of $('#cal-mode-seg').children) b.classList.toggle('on', b.dataset.cal === settings.calMode);
+  const tl = $('#today-label');
+  if (tl) tl.textContent = settings.calMode === 'daily' ? 'Today' : 'This week';
+  $('#today-btn').title = keys(settings.calMode === 'daily' ? 'Today (⌘T)' : 'This week (⌘T)');
+  renderCalendar();
   sketch?.setTheme(themeNow());
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => sketch?.setTheme(themeNow()));
@@ -1552,6 +1579,7 @@ for (const [k, sel] of Object.entries(fontInputs)) {
 }
 $('#set-page-size').addEventListener('change', e => setSetting('pageSize', e.target.value));
 $('#theme-seg').addEventListener('click', e => { if (e.target.dataset.theme) setSetting('theme', e.target.dataset.theme); });
+$('#cal-mode-seg').addEventListener('click', e => { if (e.target.dataset.cal) setSetting('calMode', e.target.dataset.cal); });
 function showRootPath() {
   const short = rootDir.replace(/^\/Users\/[^/]+/, '~');
   $('#root-path').textContent = short;
@@ -1662,7 +1690,106 @@ $('#find-prev').onclick = () => showFindMatch(findIdx - 1);
 $('#find-next').onclick = () => showFindMatch(findIdx + 1);
 $('#find-close').onclick = closeFind;
 
+// ---------- calendar & weekly/daily notes ----------
+const calEl = $('#calendar');
+
+function collectJournalPaths(nodes) {
+  journalPaths.clear();
+  const walk = list => {
+    for (const n of list) {
+      if (n.dir) walk(n.children || []);
+      else if (n.path.startsWith('Journal/')) journalPaths.add(n.path);
+    }
+  };
+  walk(nodes);
+}
+
+function renderCalendar() {
+  const el = $('#calendar');
+  if (!el) return;
+  const mode = settings.calMode || 'daily';
+  el.className = mode;
+  const todayKey = CAL.dateKey(new Date());
+  const rows = CAL.monthGrid(calYear, calMonth);
+  let html = `<div class="cal-head">` +
+    `<button class="cal-title" data-cal="home" title="Jump to current month">${CAL.MONTHS[calMonth]} ${calYear}</button>` +
+    `<div class="cal-nav"><button data-cal="prev" aria-label="Previous month">‹</button><button data-cal="next" aria-label="Next month">›</button></div>` +
+    `</div><div class="cal-dow"><span>W</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>`;
+  for (const r of rows) {
+    const wkPath = `Journal/${r.key}.md`;
+    const wkActive = mode === 'weekly' && current === wkPath;
+    const wkHas = journalPaths.has(wkPath);
+    html += `<div class="cal-row${wkActive ? ' active' : ''}" data-week="${r.key}" data-date="${r.days[0].key}">`;
+    html += `<span class="cal-wk${wkHas ? ' has-note' : ''}" title="Week ${r.week}">${r.week}</span>`;
+    for (const d of r.days) {
+      const dayPath = `Journal/${d.key}.md`;
+      const cls = ['cal-day'];
+      if (!d.inMonth) cls.push('out');
+      if (d.key === todayKey) cls.push('today');
+      if (mode === 'daily' && current === dayPath) cls.push('active');
+      if (journalPaths.has(dayPath)) cls.push('has-note');
+      html += `<span class="${cls.join(' ')}" data-date="${d.key}">${d.date.getDate()}</span>`;
+    }
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+async function openCalendarNote(d = new Date()) {
+  await flush();
+  const note = (settings.calMode === 'daily' ? CAL.dailyNote : CAL.weeklyNote)(d);
+  if (journalPaths.has(note.path)) return openNote(note.path);
+  // Open as an unsaved draft so browsing empty days never clutters Journal/.
+  await closeSketch();
+  closeSlash();
+  closeFind();
+  const normalized = MD.serialize(MD.parse(note.template));
+  current = note.path;
+  draftNote = true;
+  lastSaved = normalized;
+  selectedDir = 'Journal';
+  applyPageView();
+  titleEl.textContent = base(note.path);
+  showCrumbs();
+  render(normalized);
+  histories.delete(note.path);
+  snapshot();
+  $('#page').hidden = false;
+  $('#main').scrollTop = 0;
+  markActive();
+  const todo = editor.querySelector('.block[data-type="todo"]');
+  focusBlock(todo || editor.firstElementChild, 0);
+}
+
+calEl.addEventListener('click', e => {
+  const nav = e.target.closest('button[data-cal]');
+  if (nav) {
+    const op = nav.dataset.cal;
+    if (op === 'home') { const n = new Date(); calYear = n.getFullYear(); calMonth = n.getMonth(); }
+    else {
+      calMonth += op === 'next' ? 1 : -1;
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      else if (calMonth > 11) { calMonth = 0; calYear++; }
+    }
+    renderCalendar();
+    return;
+  }
+  const day = e.target.closest('.cal-day');
+  const row = e.target.closest('.cal-row');
+  if (!row) return;
+  const key = (settings.calMode === 'daily' && day) ? day.dataset.date : row.dataset.date;
+  const [y, m, dd] = key.split('-').map(Number);
+  openCalendarNote(new Date(y, m - 1, dd));
+});
+
 // ---------- global ----------
+$('#today-btn').onclick = () => {
+  const n = new Date();
+  calYear = n.getFullYear();
+  calMonth = n.getMonth();
+  renderCalendar();
+  openCalendarNote(n);
+};
 $('#settings-btn').onclick = openSettings;
 $('#search-btn').onclick = openPalette;
 $('#new-note-btn').onclick = () => newNote();
@@ -1689,6 +1816,7 @@ document.addEventListener('keydown', e => {
   else if (e.code === 'KeyN' && e.altKey) { e.preventDefault(); newSketch(); }
   else if (k === 'f' && e.shiftKey) { e.preventDefault(); togglePresent(); }
   else if (k === 'f' && current) { e.preventDefault(); openFind(); }
+  else if (k === 't') { e.preventDefault(); $('#today-btn').click(); }
   else if (k === 'n') { e.preventDefault(); newNote(); }
   else if (k === 's') { e.preventDefault(); flush(); }
   else if (k === ',') { e.preventDefault(); settingsEl.hidden ? openSettings() : (settingsEl.hidden = true); }
@@ -1706,7 +1834,7 @@ setInterval(() => {
       if (path === sketchPath && json !== sketchSaved) { sketchSaved = json; sketch.load(json); }
       return;
     }
-    if (!current || saveTimer || renameTimer) return;
+    if (!current || draftNote || saveTimer || renameTimer) return;
     let md;
     try { md = await invoke('read_note', { path: current }); } catch { return showEmpty(); }
     if (md !== lastSaved) {
