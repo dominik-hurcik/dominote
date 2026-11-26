@@ -116,10 +116,10 @@
       border: 1px solid var(--border); box-shadow: var(--shadow);
     }
     .shot img { display: block; width: 100%; height: auto; }
-    .shot-dark { display: none; }
+    .shot img.shot-dark { display: none; }
     @media (prefers-color-scheme: dark) {
-      .shot-light { display: none; }
-      .shot-dark { display: block; }
+      .shot img.shot-light { display: none; }
+      .shot img.shot-dark { display: block; }
     }
 
     .grid {
@@ -189,19 +189,18 @@
       </p>
     </section>
 
-    <div class="shot">
-      <img class="shot-light" src="light.png" alt="Hebdo light theme showing to-dos, a table, a callout and a code block">
-      <img class="shot-dark" src="dark.png" alt="Hebdo dark theme">
-    </div>
-
     <section id="features" class="grid">
       <div class="card">
         <h3>7 MB, zero bloat</h3>
-        <p>Rust backend, plain JavaScript editor, native WebKit &amp; WebView2. No bundled Chromium, no Electron overhead.</p>
+        <p>Rust backend, plain JavaScript editor, native macOS WebKit. No bundled Chromium, no Electron overhead.</p>
       </div>
       <div class="card">
         <h3>Files you actually own</h3>
-        <p>Every page is GitHub-flavored Markdown on disk. Sync with iCloud Drive, Dropbox, or Git — pick any folder in Settings.</p>
+        <p>Every page is GitHub-flavored Markdown on disk. Sync automatically via iCloud Drive, or pick any folder in Settings.</p>
+      </div>
+      <div class="card">
+        <h3>Native iOS companion</h3>
+        <p>A fast SwiftUI app for iPhone &amp; iPad sharing your iCloud Drive / Hebdo folder — same live block editor, zero logins.</p>
       </div>
       <div class="card">
         <h3>Built for AI agents</h3>
@@ -217,7 +216,11 @@
       </div>
       <div class="card">
         <h3>Fast keyboard workflow</h3>
-        <p>Slash menu, Markdown shortcuts as you type, ⌘K global search, ⌘F find in page, ⇧⌘E PDF export, and ⇧⌘F present mode.</p>
+        <p>Slash menu, Markdown shortcuts as you type, ⌘K global search, ⌘F find in page, and ⇧⌘F present mode.</p>
+      </div>
+      <div class="card">
+        <h3>Linked folders &amp; PDF</h3>
+        <p>Link any folder from disk right into your sidebar without moving files, and export any note as a clean light-mode PDF with ⇧⌘E.</p>
       </div>
       <div class="card">
         <h3>Local page history</h3>
@@ -235,10 +238,19 @@
         <figcaption>Type / for headings, lists, tables, callouts, and code blocks</figcaption>
       </figure>
       <figure>
+        <img src="search.png" alt="Global search palette with Cmd+K">
+        <figcaption>Instant search across titles and note text with ⌘K</figcaption>
+      </figure>
+      <figure>
         <img src="dark.png" alt="Hebdo dark theme">
         <figcaption>Light and dark themes, daily calendar, and per-note zoom</figcaption>
       </figure>
     </section>
+
+    <div class="shot">
+      <img class="shot-light" src="light.png" alt="Hebdo light theme showing to-dos, a table, a callout and a code block">
+      <img class="shot-dark" src="dark.png" alt="Hebdo dark theme">
+    </div>
 
     <footer>
       <span>Hebdo — MIT License</span>
