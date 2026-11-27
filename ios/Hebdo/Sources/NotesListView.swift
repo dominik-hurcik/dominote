@@ -1,15 +1,20 @@
 import SwiftUI
 
+private enum NotesRoute: Hashable {
+    case folder(path: String, name: String)
+    case note(String)
+}
+
 struct NotesListView: View {
     @EnvironmentObject private var store: NoteStore
     @State private var query = ""
     @State private var showSettings = false
     @State private var showNewFolder = false
     @State private var newFolderName = ""
-    @State private var activeNotePath: String?
+    @State private var navPath: [NotesRoute] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             List {
                 if !query.trimmingCharacters(in: .whitespaces).isEmpty {
                     let hits = store.search(query)
@@ -18,7 +23,7 @@ struct NotesListView: View {
                             .listRowBackground(HebdoTheme.bg)
                     } else {
                         ForEach(hits) { hit in
-                            NavigationLink(value: hit.path) {
+                            NavigationLink(value: NotesRoute.note(hit.path)) {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(hit.title)
                                         .font(.system(size: 16, weight: .medium, design: .serif))
@@ -60,18 +65,16 @@ struct NotesListView: View {
             .navigationTitle("Notes")
             .searchable(text: $query, prompt: "Search pages…")
             .refreshable { store.refreshTree() }
-            .navigationDestination(for: String.self) { path in
-                if NoteStore.isSketch(path) {
-                    SketchEditorView(path: path)
-                } else {
-                    NoteEditorView(initialPath: path, draftTemplate: nil, allowTitleEdit: true)
-                }
-            }
-            .navigationDestination(item: $activeNotePath) { path in
-                if NoteStore.isSketch(path) {
-                    SketchEditorView(path: path)
-                } else {
-                    NoteEditorView(initialPath: path, draftTemplate: nil, allowTitleEdit: true)
+            .navigationDestination(for: NotesRoute.self) { route in
+                switch route {
+                case .folder(let path, let name):
+                    FolderView(folderPath: path, folderName: name, navPath: $navPath)
+                case .note(let path):
+                    if NoteStore.isSketch(path) {
+                        SketchEditorView(path: path)
+                    } else {
+                        NoteEditorView(initialPath: path, draftTemplate: nil, allowTitleEdit: true)
+                    }
                 }
             }
             .toolbar {
@@ -84,12 +87,12 @@ struct NotesListView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button {
-                            activeNotePath = store.createNote()
+                            navPath.append(.note(store.createNote()))
                         } label: {
                             Label("New Page", systemImage: "doc.badge.plus")
                         }
                         Button {
-                            activeNotePath = store.createSketch()
+                            navPath.append(.note(store.createSketch()))
                         } label: {
                             Label("New Sketch", systemImage: "pencil.and.outline")
                         }
@@ -125,9 +128,7 @@ private struct NodeRowsView: View {
     var body: some View {
         ForEach(nodes) { node in
             if node.isDir {
-                NavigationLink {
-                    FolderView(folder: node)
-                } label: {
+                NavigationLink(value: NotesRoute.folder(path: node.path, name: node.name)) {
                     HStack(spacing: 10) {
                         Image(systemName: "folder")
                             .font(.system(size: 14))
@@ -145,7 +146,7 @@ private struct NodeRowsView: View {
                 .listRowBackground(HebdoTheme.side)
                 .listRowSeparatorTint(HebdoTheme.border.opacity(0.6))
             } else {
-                NavigationLink(value: node.path) {
+                NavigationLink(value: NotesRoute.note(node.path)) {
                     HStack(spacing: 10) {
                         Image(systemName: NoteStore.isSketch(node.path) ? "pencil.and.outline" : "doc.text")
                             .font(.system(size: 14))
@@ -170,11 +171,12 @@ private struct NodeRowsView: View {
 
 private struct FolderView: View {
     @EnvironmentObject private var store: NoteStore
-    let folder: NoteNode
-    @State private var activeNotePath: String?
+    let folderPath: String
+    let folderName: String
+    @Binding var navPath: [NotesRoute]
 
     private var liveChildren: [NoteNode] {
-        find(path: folder.path, in: store.tree)?.children ?? folder.children
+        find(path: folderPath, in: store.tree)?.children ?? []
     }
 
     var body: some View {
@@ -183,20 +185,17 @@ private struct FolderView: View {
                 ContentUnavailableView("Empty Folder", systemImage: "folder")
                     .listRowBackground(HebdoTheme.side)
             } else {
-                NodeRowsView(nodes: liveChildren, parentDir: folder.path)
+                NodeRowsView(nodes: liveChildren, parentDir: folderPath)
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(HebdoTheme.side)
-        .navigationTitle(folder.name)
-        .navigationDestination(item: $activeNotePath) { path in
-            NoteEditorView(initialPath: path, draftTemplate: nil, allowTitleEdit: true)
-        }
+        .navigationTitle(folderName)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    activeNotePath = store.createNote(in: folder.path)
+                    navPath.append(.note(store.createNote(in: folderPath)))
                 } label: {
                     Image(systemName: "doc.badge.plus")
                         .foregroundStyle(HebdoTheme.text)
