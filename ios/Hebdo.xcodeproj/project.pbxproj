@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		128F7548DC6365B0493C9D4D /* HebdoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB037CD7C6B6056DCC3FB9D /* HebdoTheme.swift */; };
+		1F4EA29A0BE68C32F0C5B9D6 /* BlockTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7621A9ADDC40FB9ACE30BD26 /* BlockTextView.swift */; };
 		4C78FF1BC7F89C4FF3493FAD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 412F85E25A2F6AE1A82CE5FA /* Assets.xcassets */; };
 		561770EC71854E28836B51A1 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 122E2D214D319C7B95877086 /* TodayView.swift */; };
 		6CACE83B07C5006C4D735E3F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1B778FC3CA4E6D2C5FA62DF /* SettingsView.swift */; };
@@ -31,6 +32,7 @@
 		412F85E25A2F6AE1A82CE5FA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4483558459895CDD985B40EF /* Hebdo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Hebdo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6AE1A78E77890B7235EF0324 /* sketch.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = sketch.html; sourceTree = "<group>"; };
+		7621A9ADDC40FB9ACE30BD26 /* BlockTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockTextView.swift; sourceTree = "<group>"; };
 		78A5D6163F0C87A872EB8B2A /* SketchEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchEditorView.swift; sourceTree = "<group>"; };
 		849AFB9F29643536117242B6 /* HebdoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HebdoApp.swift; sourceTree = "<group>"; };
 		936D7F52FDE14B579C84851C /* NoteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteStore.swift; sourceTree = "<group>"; };
@@ -71,6 +73,7 @@
 		40B9E777A8F435721AF88F8C /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				7621A9ADDC40FB9ACE30BD26 /* BlockTextView.swift */,
 				E584E81F813BFEB7BC282A6A /* CalendarHelper.swift */,
 				849AFB9F29643536117242B6 /* HebdoApp.swift */,
 				1EB037CD7C6B6056DCC3FB9D /* HebdoTheme.swift */,
@@ -167,6 +170,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1F4EA29A0BE68C32F0C5B9D6 /* BlockTextView.swift in Sources */,
 				FB37C5897E2F1A95E7094762 /* CalendarHelper.swift in Sources */,
 				C6C1E20E2608DB55A303BDE0 /* HebdoApp.swift in Sources */,
 				128F7548DC6365B0493C9D4D /* HebdoTheme.swift in Sources */,
@@ -217,7 +221,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = LRU8S47CXH;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -276,7 +280,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = LRU8S47CXH;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

@@ -1,7 +1,9 @@
 import SwiftUI
+import UIKit
 
 struct NoteEditorView: View {
     @EnvironmentObject private var store: NoteStore
+    @Environment(\.colorScheme) private var colorScheme
 
     let initialPath: String
     let draftTemplate: String?
@@ -13,7 +15,9 @@ struct NoteEditorView: View {
     @State private var lastSavedMd: String = ""
     @State private var isDraft: Bool
     @State private var saveTask: Task<Void, Never>?
-    @FocusState private var focusedBlockID: UUID?
+    @State private var focusedBlockID: UUID?
+    @State private var pendingCursorBlockID: UUID?
+    @State private var pendingCursorOffset: Int?
 
     init(initialPath: String, draftTemplate: String?, allowTitleEdit: Bool) {
         self.initialPath = initialPath
@@ -103,16 +107,58 @@ struct NoteEditorView: View {
 
     // MARK: - Block Rendering
 
+    private func blockEditor(
+        at idx: Int,
+        placeholder: String,
+        font: UIFont,
+        color: Color? = nil,
+        strikethrough: Bool = false,
+        isCode: Bool = false
+    ) -> some View {
+        let _ = colorScheme // ensure theme colors refresh on Light/Dark switch
+        let block = blocks[idx]
+        let blockID = block.id
+        let resolvedColor = UIColor(color ?? HebdoTheme.text)
+        let placeholderUIColor = UIColor(HebdoTheme.faint)
+
+        return BlockTextView(
+            text: block.text,
+            placeholder: placeholder,
+            font: font,
+            textColor: resolvedColor,
+            placeholderColor: placeholderUIColor,
+            strikethrough: strikethrough,
+            isCode: isCode,
+            isFocused: focusedBlockID == blockID,
+            shouldResign: focusedBlockID == nil,
+            requestedCursor: pendingCursorBlockID == blockID ? pendingCursorOffset : nil,
+            onTextChange: { newVal in
+                guard let liveIdx = blocks.firstIndex(where: { $0.id == blockID }) else { return }
+                handleTextChange(at: liveIdx, newVal: newVal)
+            },
+            onReturn: { head, tail in
+                guard let liveIdx = blocks.firstIndex(where: { $0.id == blockID }) else { return }
+                handleReturn(at: liveIdx, head: head, tail: tail)
+            },
+            onBackspaceAtStart: {
+                guard let liveIdx = blocks.firstIndex(where: { $0.id == blockID }) else { return }
+                handleBackspaceAtStart(at: liveIdx)
+            },
+            onFocus: {
+                focusedBlockID = blockID
+            },
+            onCursorApplied: {
+                if pendingCursorBlockID == blockID {
+                    pendingCursorBlockID = nil
+                    pendingCursorOffset = nil
+                }
+            }
+        )
+    }
+
     @ViewBuilder
     private func blockRow(at idx: Int) -> some View {
         let block = blocks[idx]
-        let binding = Binding<String>(
-            get: { idx < blocks.count ? blocks[idx].text : "" },
-            set: { newVal in
-                guard idx < blocks.count else { return }
-                handleTextChange(at: idx, newVal: newVal)
-            }
-        )
 
         switch block.type {
         case .divider:
@@ -144,12 +190,12 @@ struct NoteEditorView: View {
                             .foregroundStyle(HebdoTheme.faint)
                     }
                 }
-                TextField("Code…", text: binding, axis: .vertical)
-                    .font(.system(size: 14, design: .monospaced))
-                    .foregroundStyle(HebdoTheme.text)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .focused($focusedBlockID, equals: block.id)
+                blockEditor(
+                    at: idx,
+                    placeholder: "Code…",
+                    font: HebdoFonts.mono(size: 14),
+                    isCode: true
+                )
             }
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 8).fill(HebdoTheme.codeBg))
@@ -165,11 +211,11 @@ struct NoteEditorView: View {
                 }
                 .buttonStyle(.plain)
 
-                TextField("Callout", text: binding, axis: .vertical)
-                    .font(.system(size: 16, design: .serif))
-                    .foregroundStyle(HebdoTheme.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .focused($focusedBlockID, equals: block.id)
+                blockEditor(
+                    at: idx,
+                    placeholder: "Callout",
+                    font: HebdoFonts.serif(size: 16)
+                )
             }
             .padding(14)
             .background(RoundedRectangle(cornerRadius: 8).fill(HebdoTheme.calloutBg))
@@ -180,11 +226,11 @@ struct NoteEditorView: View {
                 Rectangle()
                     .fill(HebdoTheme.text)
                     .frame(width: 3)
-                TextField("Quote", text: binding, axis: .vertical)
-                    .font(.system(size: 16, design: .serif))
-                    .foregroundStyle(HebdoTheme.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .focused($focusedBlockID, equals: block.id)
+                blockEditor(
+                    at: idx,
+                    placeholder: "Quote",
+                    font: HebdoFonts.serif(size: 16)
+                )
             }
             .padding(.vertical, 4)
 
@@ -198,16 +244,17 @@ struct NoteEditorView: View {
                     Image(systemName: block.checked ? "checkmark.square.fill" : "square")
                         .font(.system(size: 18))
                         .foregroundStyle(block.checked ? HebdoTheme.accent : HebdoTheme.muted)
-                        .padding(.top, 2)
+                        .padding(.top, 1)
                 }
                 .buttonStyle(.plain)
 
-                TextField("To-do", text: binding, axis: .vertical)
-                    .font(.system(size: 16, design: .serif))
-                    .strikethrough(block.checked, color: HebdoTheme.faint)
-                    .foregroundStyle(block.checked ? HebdoTheme.faint : HebdoTheme.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .focused($focusedBlockID, equals: block.id)
+                blockEditor(
+                    at: idx,
+                    placeholder: "To-do",
+                    font: HebdoFonts.serif(size: 16),
+                    color: block.checked ? HebdoTheme.faint : HebdoTheme.text,
+                    strikethrough: block.checked
+                )
             }
             .padding(.leading, CGFloat(block.indent) * 20)
             .padding(.vertical, 2)
@@ -218,11 +265,11 @@ struct NoteEditorView: View {
                     .font(.system(size: 18, weight: .bold, design: .serif))
                     .foregroundStyle(HebdoTheme.text)
                     .frame(width: 16, alignment: .center)
-                TextField("List", text: binding, axis: .vertical)
-                    .font(.system(size: 16, design: .serif))
-                    .foregroundStyle(HebdoTheme.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .focused($focusedBlockID, equals: block.id)
+                blockEditor(
+                    at: idx,
+                    placeholder: "List",
+                    font: HebdoFonts.serif(size: 16)
+                )
             }
             .padding(.leading, CGFloat(block.indent) * 20)
             .padding(.vertical, 2)
@@ -233,67 +280,78 @@ struct NoteEditorView: View {
                     .font(.system(size: 16, design: .serif))
                     .foregroundStyle(HebdoTheme.text)
                     .frame(minWidth: 20, alignment: .trailing)
-                TextField("List", text: binding, axis: .vertical)
-                    .font(.system(size: 16, design: .serif))
-                    .foregroundStyle(HebdoTheme.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .focused($focusedBlockID, equals: block.id)
+                blockEditor(
+                    at: idx,
+                    placeholder: "List",
+                    font: HebdoFonts.serif(size: 16)
+                )
             }
             .padding(.leading, CGFloat(block.indent) * 20)
             .padding(.vertical, 2)
 
         case .h1:
-            TextField("Heading 1", text: binding, axis: .vertical)
-                .font(.system(size: 26, weight: .bold, design: .serif))
-                .foregroundStyle(HebdoTheme.text)
-                .padding(.top, 14)
-                .padding(.bottom, 2)
-                .focused($focusedBlockID, equals: block.id)
+            blockEditor(
+                at: idx,
+                placeholder: "Heading 1",
+                font: HebdoFonts.serif(size: 26, weight: .bold)
+            )
+            .padding(.top, 14)
+            .padding(.bottom, 2)
 
         case .h2:
-            TextField("Heading 2", text: binding, axis: .vertical)
-                .font(.system(size: 21, weight: .semibold, design: .serif))
-                .foregroundStyle(HebdoTheme.text)
-                .padding(.top, 12)
-                .padding(.bottom, 2)
-                .focused($focusedBlockID, equals: block.id)
+            blockEditor(
+                at: idx,
+                placeholder: "Heading 2",
+                font: HebdoFonts.serif(size: 21, weight: .semibold)
+            )
+            .padding(.top, 12)
+            .padding(.bottom, 2)
 
         case .h3:
-            TextField("Heading 3", text: binding, axis: .vertical)
-                .font(.system(size: 18, weight: .semibold, design: .serif))
-                .foregroundStyle(HebdoTheme.text)
-                .padding(.top, 8)
-                .padding(.bottom, 2)
-                .focused($focusedBlockID, equals: block.id)
+            blockEditor(
+                at: idx,
+                placeholder: "Heading 3",
+                font: HebdoFonts.serif(size: 18, weight: .semibold)
+            )
+            .padding(.top, 8)
+            .padding(.bottom, 2)
 
         case .p:
-            TextField(idx == blocks.count - 1 ? "Write something, or type # / - / []…" : "", text: binding, axis: .vertical)
-                .font(.system(size: 16, design: .serif))
-                .foregroundStyle(HebdoTheme.text)
-                .padding(.vertical, 3)
-                .focused($focusedBlockID, equals: block.id)
+            blockEditor(
+                at: idx,
+                placeholder: idx == blocks.count - 1 ? "Write something, or type # / - / []…" : "",
+                font: HebdoFonts.serif(size: 16)
+            )
+            .padding(.vertical, 3)
         }
     }
 
     // MARK: - Block Editing Interactions
 
+    private func focus(_ id: UUID, cursor: Int? = nil) {
+        focusedBlockID = id
+        if let cursor {
+            pendingCursorBlockID = id
+            pendingCursorOffset = cursor
+        }
+    }
+
     private func handleTextChange(at idx: Int, newVal: String) {
-        // Pressing Return inside a vertical TextField inserts "\n" — split into a new block!
+        // Multi-line paste into a non-code block: split cleanly into blocks
         if blocks[idx].type != .code, newVal.contains("\n") {
-            let parts = newVal.components(separatedBy: "\n")
-            let head = parts[0]
-            let tail = parts.dropFirst().joined(separator: " ")
-            if blocks[idx].type.isList && head.trimmingCharacters(in: .whitespaces).isEmpty && tail.isEmpty {
-                blocks[idx].type = .p
-                blocks[idx].text = ""
-                scheduleSave()
-                return
-            }
-            blocks[idx].text = head
+            let lines = newVal.replacingOccurrences(of: "\r\n", with: "\n")
+                .replacingOccurrences(of: "\r", with: "\n")
+                .components(separatedBy: "\n")
+            blocks[idx].text = lines.first ?? ""
             let nextType: BlockType = blocks[idx].type.isList ? blocks[idx].type : .p
-            let nb = NoteBlock(type: nextType, text: tail, indent: blocks[idx].type.isList ? blocks[idx].indent : 0)
-            blocks.insert(nb, at: idx + 1)
-            focusedBlockID = nb.id
+            let nextIndent = blocks[idx].type.isList ? blocks[idx].indent : 0
+            var lastID = blocks[idx].id
+            for (offset, line) in lines.dropFirst().enumerated() {
+                let nb = NoteBlock(type: nextType, text: line, indent: nextIndent)
+                blocks.insert(nb, at: idx + 1 + offset)
+                lastID = nb.id
+            }
+            focus(lastID, cursor: (lines.last ?? "").utf16.count)
             scheduleSave()
             return
         }
@@ -307,8 +365,10 @@ struct NoteEditorView: View {
                 ("> ", .quote),
             ]
             for (prefix, targetType) in shortcuts where newVal.hasPrefix(prefix) {
+                let rest = String(newVal.dropFirst(prefix.count))
                 blocks[idx].type = targetType
-                blocks[idx].text = String(newVal.dropFirst(prefix.count))
+                blocks[idx].text = rest
+                focus(blocks[idx].id, cursor: rest.utf16.count)
                 scheduleSave()
                 return
             }
@@ -317,19 +377,81 @@ struct NoteEditorView: View {
                 blocks[idx].text = ""
                 let after = NoteBlock(type: .p)
                 blocks.insert(after, at: idx + 1)
-                focusedBlockID = after.id
+                focus(after.id, cursor: 0)
                 scheduleSave()
                 return
             }
             if newVal == "```" {
                 blocks[idx].type = .code
                 blocks[idx].text = ""
+                focus(blocks[idx].id, cursor: 0)
                 scheduleSave()
                 return
             }
         }
 
         blocks[idx].text = newVal
+        scheduleSave()
+    }
+
+    private func handleReturn(at idx: Int, head: String, tail: String) {
+        let cur = blocks[idx]
+        // Pressing Return on an empty list / quote / callout exits that block back to plain text
+        if (cur.type.isList || cur.type == .quote || cur.type == .callout),
+           head.trimmingCharacters(in: .whitespaces).isEmpty && tail.isEmpty {
+            blocks[idx].type = .p
+            blocks[idx].indent = 0
+            blocks[idx].checked = false
+            blocks[idx].text = ""
+            focus(blocks[idx].id, cursor: 0)
+            scheduleSave()
+            return
+        }
+
+        blocks[idx].text = head
+        let nextType: BlockType = cur.type.isList ? cur.type : .p
+        let nextIndent = cur.type.isList ? cur.indent : 0
+        let nb = NoteBlock(type: nextType, text: tail, indent: nextIndent)
+        blocks.insert(nb, at: idx + 1)
+        focus(nb.id, cursor: 0)
+        scheduleSave()
+    }
+
+    private func handleBackspaceAtStart(at idx: Int) {
+        guard idx < blocks.count else { return }
+        let cur = blocks[idx]
+
+        // 1. Outdent nested list item first
+        if cur.indent > 0 {
+            blocks[idx].indent -= 1
+            scheduleSave()
+            return
+        }
+
+        // 2. Strip block formatting (checkbox, bullet, heading, quote, callout, empty code) -> plain paragraph
+        if cur.type != .p {
+            if cur.type == .code && !cur.text.isEmpty { return }
+            blocks[idx].type = .p
+            blocks[idx].checked = false
+            focus(blocks[idx].id, cursor: 0)
+            scheduleSave()
+            return
+        }
+
+        // 3. Plain paragraph at start: merge with previous block (or delete preceding divider)
+        guard idx > 0 else { return }
+        if blocks[idx - 1].type == .divider {
+            blocks.remove(at: idx - 1)
+            scheduleSave()
+            return
+        }
+        let joinPos = blocks[idx - 1].text.utf16.count
+        let prevID = blocks[idx - 1].id
+        if !cur.text.isEmpty {
+            blocks[idx - 1].text += cur.text
+        }
+        blocks.remove(at: idx)
+        focus(prevID, cursor: joinPos)
         scheduleSave()
     }
 
@@ -350,9 +472,9 @@ struct NoteEditorView: View {
             if type == .divider {
                 let p = NoteBlock(type: .p)
                 blocks.append(p)
-                focusedBlockID = p.id
+                focus(p.id, cursor: 0)
             } else {
-                focusedBlockID = nb.id
+                focus(nb.id, cursor: 0)
             }
             scheduleSave()
             return
@@ -361,9 +483,14 @@ struct NoteEditorView: View {
             blocks.insert(NoteBlock(type: .divider), at: idx + 1)
             let p = NoteBlock(type: .p)
             blocks.insert(p, at: idx + 2)
-            focusedBlockID = p.id
+            focus(p.id, cursor: 0)
         } else {
             blocks[idx].type = (blocks[idx].type == type) ? .p : type
+            if blocks[idx].type == .p {
+                blocks[idx].checked = false
+                blocks[idx].indent = 0
+            }
+            focus(blocks[idx].id, cursor: blocks[idx].text.utf16.count)
         }
         scheduleSave()
     }
@@ -385,11 +512,11 @@ struct NoteEditorView: View {
 
     private func appendOrFocusLast() {
         if let last = blocks.last, last.type == .p && last.text.isEmpty {
-            focusedBlockID = last.id
+            focus(last.id, cursor: 0)
         } else {
             let nb = NoteBlock(type: .p)
             blocks.append(nb)
-            focusedBlockID = nb.id
+            focus(nb.id, cursor: 0)
         }
     }
 
