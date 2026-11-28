@@ -170,7 +170,6 @@ struct NoteEditorView: View {
                     .foregroundStyle(HebdoTheme.text)
                     .fixedSize(horizontal: false, vertical: true)
                     .focused($focusedBlockID, equals: block.id)
-                    .onSubmit { handleSubmit(at: idx) }
             }
             .padding(14)
             .background(RoundedRectangle(cornerRadius: 8).fill(HebdoTheme.calloutBg))
@@ -186,7 +185,6 @@ struct NoteEditorView: View {
                     .foregroundStyle(HebdoTheme.text)
                     .fixedSize(horizontal: false, vertical: true)
                     .focused($focusedBlockID, equals: block.id)
-                    .onSubmit { handleSubmit(at: idx) }
             }
             .padding(.vertical, 4)
 
@@ -210,7 +208,6 @@ struct NoteEditorView: View {
                     .foregroundStyle(block.checked ? HebdoTheme.faint : HebdoTheme.text)
                     .fixedSize(horizontal: false, vertical: true)
                     .focused($focusedBlockID, equals: block.id)
-                    .onSubmit { handleSubmit(at: idx) }
             }
             .padding(.leading, CGFloat(block.indent) * 20)
             .padding(.vertical, 2)
@@ -224,8 +221,8 @@ struct NoteEditorView: View {
                 TextField("List", text: binding, axis: .vertical)
                     .font(.system(size: 16, design: .serif))
                     .foregroundStyle(HebdoTheme.text)
+                    .fixedSize(horizontal: false, vertical: true)
                     .focused($focusedBlockID, equals: block.id)
-                    .onSubmit { handleSubmit(at: idx) }
             }
             .padding(.leading, CGFloat(block.indent) * 20)
             .padding(.vertical, 2)
@@ -239,8 +236,8 @@ struct NoteEditorView: View {
                 TextField("List", text: binding, axis: .vertical)
                     .font(.system(size: 16, design: .serif))
                     .foregroundStyle(HebdoTheme.text)
+                    .fixedSize(horizontal: false, vertical: true)
                     .focused($focusedBlockID, equals: block.id)
-                    .onSubmit { handleSubmit(at: idx) }
             }
             .padding(.leading, CGFloat(block.indent) * 20)
             .padding(.vertical, 2)
@@ -252,7 +249,6 @@ struct NoteEditorView: View {
                 .padding(.top, 14)
                 .padding(.bottom, 2)
                 .focused($focusedBlockID, equals: block.id)
-                .onSubmit { handleSubmit(at: idx) }
 
         case .h2:
             TextField("Heading 2", text: binding, axis: .vertical)
@@ -261,7 +257,6 @@ struct NoteEditorView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 2)
                 .focused($focusedBlockID, equals: block.id)
-                .onSubmit { handleSubmit(at: idx) }
 
         case .h3:
             TextField("Heading 3", text: binding, axis: .vertical)
@@ -270,7 +265,6 @@ struct NoteEditorView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 2)
                 .focused($focusedBlockID, equals: block.id)
-                .onSubmit { handleSubmit(at: idx) }
 
         case .p:
             TextField(idx == blocks.count - 1 ? "Write something, or type # / - / []…" : "", text: binding, axis: .vertical)
@@ -278,7 +272,6 @@ struct NoteEditorView: View {
                 .foregroundStyle(HebdoTheme.text)
                 .padding(.vertical, 3)
                 .focused($focusedBlockID, equals: block.id)
-                .onSubmit { handleSubmit(at: idx) }
         }
     }
 
@@ -337,20 +330,6 @@ struct NoteEditorView: View {
         }
 
         blocks[idx].text = newVal
-        scheduleSave()
-    }
-
-    private func handleSubmit(at idx: Int) {
-        guard idx < blocks.count else { return }
-        if blocks[idx].type.isList && blocks[idx].text.trimmingCharacters(in: .whitespaces).isEmpty {
-            blocks[idx].type = .p
-            scheduleSave()
-            return
-        }
-        let nextType: BlockType = blocks[idx].type.isList ? blocks[idx].type : .p
-        let nb = NoteBlock(type: nextType, indent: blocks[idx].type.isList ? blocks[idx].indent : 0)
-        blocks.insert(nb, at: idx + 1)
-        focusedBlockID = nb.id
         scheduleSave()
     }
 
